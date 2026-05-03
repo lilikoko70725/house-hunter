@@ -134,9 +134,8 @@ export default function AnalyzePage() {
     }
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     try {
-      const saved = JSON.parse(localStorage.getItem('house_hunter_saved') || '[]');
       const newItem = {
         id: Date.now().toString(),
         timestamp: Date.now(),
@@ -147,11 +146,21 @@ export default function AnalyzePage() {
           time: travelTime
         } : null
       };
-      localStorage.setItem('house_hunter_saved', JSON.stringify([newItem, ...saved]));
+      
+      const res = await fetch('/api/saved', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'add', item: newItem })
+      });
+      
+      if (!res.ok) {
+        throw new Error('儲存失敗，請確認已設定 Vercel KV');
+      }
+      
       setIsSaved(true);
     } catch (e) {
       console.error('Save failed', e);
-      alert('儲存失敗，請確認瀏覽器是否開啟無痕模式。');
+      alert(e.message || '儲存至雲端失敗，請稍後再試。');
     }
   };
 

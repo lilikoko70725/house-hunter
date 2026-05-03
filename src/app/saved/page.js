@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import styles from './page.module.css';
-import { Home, ArrowLeft, Trash2, MapPin, DollarSign, Maximize, Calendar, X, CheckCircle2, AlertTriangle, Lightbulb, TrendingUp, Navigation, ExternalLink, Car, Image as ImageIcon, Building, Scale } from 'lucide-react';
+import { Home, ArrowLeft, Trash2, MapPin, DollarSign, Maximize, Calendar, X, CheckCircle2, AlertTriangle, Lightbulb, TrendingUp, Navigation, ExternalLink, Car, Image as ImageIcon, Building, Scale, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 
 export default function SavedPage() {
@@ -21,6 +21,7 @@ export default function SavedPage() {
   const [districtFilter, setDistrictFilter] = useState('all');
   const [sortBy, setSortBy] = useState('newest');
   const [compareIds, setCompareIds] = useState([]);
+  const [isLoadingItems, setIsLoadingItems] = useState(true);
 
   const closeModal = () => {
     setSelectedItem(null);
@@ -49,18 +50,16 @@ export default function SavedPage() {
       if (res.ok && data.time) {
         setTravelTime(data.time);
         
-        // Save to localStorage
-        const updatedItems = savedItems.map(item => {
-          if (item.id === selectedItem.id) {
-            return {
-              ...item,
-              commuteInfo: { destination: destinationInput, time: data.time }
-            };
-          }
-          return item;
-        });
+        const updatedItem = { ...selectedItem, commuteInfo: { destination: destinationInput, time: data.time } };
+        const updatedItems = savedItems.map(item => item.id === selectedItem.id ? updatedItem : item);
         setSavedItems(updatedItems);
-        localStorage.setItem('house_hunter_saved', JSON.stringify(updatedItems));
+        
+        // Save to KV
+        fetch('/api/saved', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'update_commute', item: updatedItem })
+        }).catch(err => console.error("Failed to save commute", err));
       } else {
         setTravelTime('無法估算');
       }
@@ -73,8 +72,17 @@ export default function SavedPage() {
 
   useEffect(() => {
     setIsClient(true);
-    const items = JSON.parse(localStorage.getItem('house_hunter_saved') || '[]');
-    setSavedItems(items);
+    
+    // Fetch items from KV
+    fetch('/api/saved')
+      .then(res => res.json())
+      .then(data => {
+        if (Array.isArray(data)) {
+          setSavedItems(data);
+        }
+      })
+      .catch(err => console.error("Error fetching saved items:", err))
+      .finally(() => setIsLoadingItems(false));
     
     const cIds = JSON.parse(localStorage.getItem('house_hunter_compare_ids') || '[]');
     setCompareIds(cIds);
@@ -101,16 +109,25 @@ export default function SavedPage() {
     return '房屋分析報告';
   };
 
-  const handleDelete = (e, id) => {
+  const handleDelete = async (e, id) => {
     e.stopPropagation(); // prevent opening the modal
     if (confirm('確定要刪除這筆分析紀錄嗎？')) {
       const newItems = savedItems.filter(item => item.id !== id);
-      setSavedItems(newItems);
-      localStorage.setItem('house_hunter_saved', JSON.stringify(newItems));
+      setSavedItems(newItems); // Optimistic update
+      
+      try {
+        await fetch('/api/saved', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'delete', id })
+        });
+      } catch (err) {
+        console.error("Failed to delete", err);
+      }
     }
   };
 
-  const handleStatusChange = (e, id, newStatus) => {
+  const handleStatusChange = async (e, id, newStatus) => {
     e.stopPropagation();
     const newItems = savedItems.map(item => {
       if (item.id === id) {
@@ -118,8 +135,17 @@ export default function SavedPage() {
       }
       return item;
     });
-    setSavedItems(newItems);
-    localStorage.setItem('house_hunter_saved', JSON.stringify(newItems));
+    setSavedItems(newItems); // Optimistic update
+    
+    try {
+      await fetch('/api/saved', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'update_status', id, newStatus })
+      });
+    } catch (err) {
+      console.error("Failed to update status", err);
+    }
   };
 
   const toggleCompare = (e, id) => {
@@ -214,7 +240,13 @@ export default function SavedPage() {
   return (
     <div className={styles.container}>
       <main className={styles.mainContent}>
-        {savedItems.length === 0 ? (
+        {isLoadingItems ? (
+          <div className={`${styles.emptyState} glass-panel`}>
+            <Loader2 className={styles.spinner} size={48} />
+            <h2>載入中...</h2>
+            <p>正在同步您的口袋名單</p>
+          </div>
+        ) : savedItems.length === 0 ? (
           <div className={`${styles.emptyState} glass-panel`}>
             <h2>目前還沒有儲存的紀錄</h2>
             <p>去分析一些房子，然後把它們加到這裡吧！</p>
