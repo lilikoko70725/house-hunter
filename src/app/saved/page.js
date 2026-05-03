@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import styles from './page.module.css';
-import { Home, ArrowLeft, Trash2, MapPin, DollarSign, Maximize, Calendar, X, CheckCircle2, AlertTriangle, Lightbulb, TrendingUp, Navigation, ExternalLink, Car } from 'lucide-react';
+import { Home, ArrowLeft, Trash2, MapPin, DollarSign, Maximize, Calendar, X, CheckCircle2, AlertTriangle, Lightbulb, TrendingUp, Navigation, ExternalLink, Car, Image as ImageIcon, Building, Scale } from 'lucide-react';
 import Link from 'next/link';
 
 export default function SavedPage() {
@@ -13,6 +13,14 @@ export default function SavedPage() {
   const [mapDestination, setMapDestination] = useState('');
   const [travelTime, setTravelTime] = useState('');
   const [isLoadingTime, setIsLoadingTime] = useState(false);
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [priceFilter, setPriceFilter] = useState('all');
+  const [sizeFilter, setSizeFilter] = useState('all');
+  const [ageFilter, setAgeFilter] = useState('all');
+  const [scoreFilter, setScoreFilter] = useState('all');
+  const [districtFilter, setDistrictFilter] = useState('all');
+  const [sortBy, setSortBy] = useState('newest');
+  const [compareIds, setCompareIds] = useState([]);
 
   const closeModal = () => {
     setSelectedItem(null);
@@ -67,7 +75,31 @@ export default function SavedPage() {
     setIsClient(true);
     const items = JSON.parse(localStorage.getItem('house_hunter_saved') || '[]');
     setSavedItems(items);
+    
+    const cIds = JSON.parse(localStorage.getItem('house_hunter_compare_ids') || '[]');
+    setCompareIds(cIds);
   }, []);
+
+  // Helper to extract property URL safely
+  const getPropertyUrl = (item) => {
+    if (!item) return null;
+    if (item.result?.sourceUrl) return item.result.sourceUrl;
+    const urlRegex = /(https?:\/\/[^\s]+)/;
+    const match = (item.formData?.description || '').match(urlRegex) || (item.formData?.address || '').match(urlRegex);
+    return match ? match[0] : null;
+  };
+
+  // Helper to get a clean display name (prioritize user input, fallback to AI name, avoid raw URLs)
+  const getDisplayName = (item) => {
+    if (!item) return '房屋分析報告';
+    if (item.formData?.address && !item.formData.address.startsWith('http')) {
+      return item.formData.address;
+    }
+    if (item.result?.basicInfo?.["名稱或地址"] && item.result.basicInfo["名稱或地址"] !== '未提供') {
+      return item.result.basicInfo["名稱或地址"];
+    }
+    return '房屋分析報告';
+  };
 
   const handleDelete = (e, id) => {
     e.stopPropagation(); // prevent opening the modal
@@ -78,7 +110,106 @@ export default function SavedPage() {
     }
   };
 
+  const handleStatusChange = (e, id, newStatus) => {
+    e.stopPropagation();
+    const newItems = savedItems.map(item => {
+      if (item.id === id) {
+        return { ...item, status: newStatus };
+      }
+      return item;
+    });
+    setSavedItems(newItems);
+    localStorage.setItem('house_hunter_saved', JSON.stringify(newItems));
+  };
+
+  const toggleCompare = (e, id) => {
+    e.stopPropagation();
+    let newIds = [...compareIds];
+    if (newIds.includes(id)) {
+      newIds = newIds.filter(i => i !== id);
+    } else {
+      if (newIds.length >= 3) {
+        alert('最多只能同時比較 3 個物件喔！');
+        return;
+      }
+      newIds.push(id);
+    }
+    setCompareIds(newIds);
+    localStorage.setItem('house_hunter_compare_ids', JSON.stringify(newIds));
+  };
+
   if (!isClient) return null; // Avoid hydration mismatch
+
+  const getItemPrice = (item) => {
+    const raw = item.formData?.price || item.result?.basicInfo?.["總價"] || '';
+    const match = raw.toString().replace(/,/g, '').match(/\d+(\.\d+)?/);
+    return match ? parseFloat(match[0]) : 0;
+  };
+
+  const getItemSize = (item) => {
+    const raw = item.formData?.size || item.result?.basicInfo?.["總坪數"] || '';
+    const match = raw.toString().replace(/,/g, '').match(/\d+(\.\d+)?/);
+    return match ? parseFloat(match[0]) : 0;
+  };
+
+  const getItemAge = (item) => {
+    const raw = item.formData?.age || item.result?.basicInfo?.["屋齡"] || '';
+    const match = raw.toString().replace(/,/g, '').match(/\d+(\.\d+)?/);
+    return match ? parseFloat(match[0]) : 0;
+  };
+
+  const getDistrict = (item) => {
+    const address = item.result?.basicInfo?.["詳細地址"] || item.formData?.address || item.result?.basicInfo?.["名稱或地址"] || '';
+    const match = address.match(/(?:[\u4e00-\u9fa5]{2}[縣市])?([\u4e00-\u9fa5]{1,3}[區鎮鄉])/);
+    return match ? match[1] : '';
+  };
+
+  const availableDistricts = [...new Set(savedItems.map(getDistrict).filter(Boolean))].sort();
+
+  const filteredItems = savedItems.filter(item => {
+    // Status
+    if (statusFilter !== 'all' && (item.status || 'to_view') !== statusFilter) return false;
+    
+    // District
+    const district = getDistrict(item);
+    if (districtFilter !== 'all' && district !== districtFilter) return false;
+    
+    // Price
+    const price = getItemPrice(item);
+    if (priceFilter === 'under_1000' && (price === 0 || price > 1000)) return false;
+    if (priceFilter === '1000_2000' && (price < 1000 || price > 2000)) return false;
+    if (priceFilter === '2000_3000' && (price < 2000 || price > 3000)) return false;
+    if (priceFilter === 'over_3000' && (price === 0 || price <= 3000)) return false;
+
+    // Size
+    const size = getItemSize(item);
+    if (sizeFilter === 'under_20' && (size === 0 || size > 20)) return false;
+    if (sizeFilter === '20_40' && (size < 20 || size > 40)) return false;
+    if (sizeFilter === 'over_40' && (size === 0 || size <= 40)) return false;
+
+    // Age
+    const age = getItemAge(item);
+    if (ageFilter === 'under_5' && (age === 0 || age > 5)) return false;
+    if (ageFilter === 'under_10' && (age === 0 || age > 10)) return false;
+    if (ageFilter === 'under_20' && (age === 0 || age > 20)) return false;
+    if (ageFilter === 'over_20' && (age === 0 || age <= 20)) return false;
+
+    // Score
+    const score = item.result?.score || 0;
+    if (scoreFilter === 'over_80' && score < 80) return false;
+    if (scoreFilter === 'over_90' && score < 90) return false;
+
+    return true;
+  }).sort((a, b) => {
+    if (sortBy === 'newest') return b.createdAt - a.createdAt || b.id - a.id;
+    if (sortBy === 'score') return (b.result?.score || 0) - (a.result?.score || 0);
+    
+    if (sortBy === 'price_asc') return getItemPrice(a) - getItemPrice(b);
+    if (sortBy === 'price_desc') return getItemPrice(b) - getItemPrice(a);
+    if (sortBy === 'size_desc') return getItemSize(b) - getItemSize(a);
+    
+    return 0;
+  });
 
   return (
     <div className={styles.container}>
@@ -90,9 +221,100 @@ export default function SavedPage() {
             <Link href="/analyze" className={styles.goAnalyzeBtn}>前往 AI 房屋分析</Link>
           </div>
         ) : (
-          <div className={styles.grid}>
-            {savedItems.map((item) => (
-              <div key={item.id} className={`${styles.card} glass-panel`} onClick={() => {
+          <>
+            <div className={styles.filterContainer}>
+              <button 
+                className={`${styles.filterTab} ${statusFilter === 'all' ? styles.active : ''}`}
+                onClick={() => setStatusFilter('all')}
+              >
+                全部
+              </button>
+              <button 
+                className={`${styles.filterTab} ${statusFilter === 'to_view' ? styles.active : ''}`}
+                onClick={() => setStatusFilter('to_view')}
+              >
+                待看房
+              </button>
+              <button 
+                className={`${styles.filterTab} ${statusFilter === 'viewed' ? styles.active : ''}`}
+                onClick={() => setStatusFilter('viewed')}
+              >
+                已看房
+              </button>
+              <button 
+                className={`${styles.filterTab} ${statusFilter === 'archived' ? styles.active : ''}`}
+                onClick={() => setStatusFilter('archived')}
+              >
+                已珍藏
+              </button>
+            </div>
+            
+            <div className={styles.advancedFilters}>
+              <div className={styles.filterGroup}>
+                <span className={styles.filterLabel}>排序</span>
+                <select className={styles.filterSelect} value={sortBy} onChange={e => setSortBy(e.target.value)}>
+                  <option value="newest">最新加入</option>
+                  <option value="score">AI 評分 (高到低)</option>
+                  <option value="price_asc">總價 (由低到高)</option>
+                  <option value="price_desc">總價 (由高到低)</option>
+                  <option value="size_desc">坪數 (由大到小)</option>
+                </select>
+              </div>
+              <div className={styles.filterGroup}>
+                <span className={styles.filterLabel}>區域</span>
+                <select className={styles.filterSelect} value={districtFilter} onChange={e => setDistrictFilter(e.target.value)}>
+                  <option value="all">不限</option>
+                  {availableDistricts.map(d => (
+                    <option key={d} value={d}>{d}</option>
+                  ))}
+                </select>
+              </div>
+              <div className={styles.filterGroup}>
+                <span className={styles.filterLabel}>總價</span>
+                <select className={styles.filterSelect} value={priceFilter} onChange={e => setPriceFilter(e.target.value)}>
+                  <option value="all">不限</option>
+                  <option value="under_1000">1000萬以下</option>
+                  <option value="1000_2000">1000~2000萬</option>
+                  <option value="2000_3000">2000~3000萬</option>
+                  <option value="over_3000">3000萬以上</option>
+                </select>
+              </div>
+              <div className={styles.filterGroup}>
+                <span className={styles.filterLabel}>坪數</span>
+                <select className={styles.filterSelect} value={sizeFilter} onChange={e => setSizeFilter(e.target.value)}>
+                  <option value="all">不限</option>
+                  <option value="under_20">20坪以下</option>
+                  <option value="20_40">20~40坪</option>
+                  <option value="over_40">40坪以上</option>
+                </select>
+              </div>
+              <div className={styles.filterGroup}>
+                <span className={styles.filterLabel}>屋齡</span>
+                <select className={styles.filterSelect} value={ageFilter} onChange={e => setAgeFilter(e.target.value)}>
+                  <option value="all">不限</option>
+                  <option value="under_5">5年內</option>
+                  <option value="under_10">10年內</option>
+                  <option value="under_20">20年內</option>
+                  <option value="over_20">20年以上</option>
+                </select>
+              </div>
+              <div className={styles.filterGroup}>
+                <span className={styles.filterLabel}>評分</span>
+                <select className={styles.filterSelect} value={scoreFilter} onChange={e => setScoreFilter(e.target.value)}>
+                  <option value="all">不限</option>
+                  <option value="over_80">80分以上</option>
+                  <option value="over_90">90分以上</option>
+                </select>
+              </div>
+            </div>
+            {filteredItems.length === 0 ? (
+              <div className={`${styles.emptyState} glass-panel`}>
+                <h2>找不到符合條件的紀錄</h2>
+              </div>
+            ) : (
+              <div className={styles.grid}>
+                {filteredItems.map((item) => (
+                  <div key={item.id} className={`${styles.card} glass-panel`} onClick={() => {
                 setSelectedItem(item);
                 if (item.commuteInfo) {
                   setDestinationInput(item.commuteInfo.destination);
@@ -108,16 +330,41 @@ export default function SavedPage() {
                   <div className={styles.cardImageContainer}>
                     <img src={`/api/image?url=${encodeURIComponent(item.result.imageUrls[0])}`} alt="房屋照片" className={styles.cardImage} onError={(e) => { e.target.style.display = 'none'; }} />
                     <div className={styles.cardHeaderOverlay}>
+                      <select 
+                        className={styles.statusSelect} 
+                        value={item.status || 'to_view'} 
+                        onChange={(e) => handleStatusChange(e, item.id, e.target.value)}
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <option value="to_view">待看房</option>
+                        <option value="viewed">已看房</option>
+                        <option value="archived">已珍藏</option>
+                      </select>
                       <div className={styles.scoreBadge}>
                         {item.result.score} 分
                       </div>
-                      <button onClick={(e) => handleDelete(e, item.id)} className={styles.deleteBtn} title="刪除紀錄">
-                        <Trash2 size={18} />
-                      </button>
+                      <div style={{ display: 'flex', gap: '0.5rem' }}>
+                        <button onClick={(e) => toggleCompare(e, item.id)} className={`${styles.compareBtn} ${compareIds.includes(item.id) ? styles.active : ''}`} title={compareIds.includes(item.id) ? "移除比較" : "加入比較"}>
+                          <Scale size={18} />
+                        </button>
+                        <button onClick={(e) => handleDelete(e, item.id)} className={styles.deleteBtn} title="刪除紀錄">
+                          <Trash2 size={18} />
+                        </button>
+                      </div>
                     </div>
                   </div>
                 ) : (
                   <div className={styles.cardHeader}>
+                    <select 
+                      className={styles.statusSelect} 
+                      value={item.status || 'to_view'} 
+                      onChange={(e) => handleStatusChange(e, item.id, e.target.value)}
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <option value="to_view">待看房</option>
+                      <option value="viewed">已看房</option>
+                      <option value="archived">已珍藏</option>
+                    </select>
                     <div className={styles.scoreBadge}>
                       {item.result.score} 分
                     </div>
@@ -130,9 +377,21 @@ export default function SavedPage() {
                 <div className={styles.cardBody}>
                   <h3 className={styles.address}>
                     <MapPin size={16} className={styles.icon} /> 
-                    {item.formData.address || '未提供地址'}
+                    <span style={{ flex: 1 }}>{getDisplayName(item)}</span>
+                    {getPropertyUrl(item) && (
+                      <a href={getPropertyUrl(item)} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} style={{ color: '#3b82f6', display: 'flex', alignItems: 'center' }} title="前往物件網頁">
+                        <ExternalLink size={16} />
+                      </a>
+                    )}
                   </h3>
                   
+                  {item.result?.basicInfo?.["社區名稱"] && item.result.basicInfo["社區名稱"] !== '未提供' && item.result.basicInfo["社區名稱"] !== '-' && (
+                    <div className={styles.communityName}>
+                      <Building size={14} />
+                      {item.result.basicInfo["社區名稱"]}
+                    </div>
+                  )}
+
                   <div className={styles.tags}>
                     {item.formData.price && (
                       <span className={styles.tag}><DollarSign size={14} /> {item.formData.price} 萬</span>
@@ -168,7 +427,9 @@ export default function SavedPage() {
                 </div>
               </div>
             ))}
-          </div>
+            </div>
+          )}
+        </>
         )}
       </main>
 
@@ -186,11 +447,36 @@ export default function SavedPage() {
               </div>
               <h2 className={styles.modalTitle}>
                 <MapPin size={24} className={styles.icon} />
-                {selectedItem.formData.address || '房屋分析報告'}
+                {getDisplayName(selectedItem)}
+                {getPropertyUrl(selectedItem) && (
+                  <a href={getPropertyUrl(selectedItem)} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', marginLeft: '0.5rem', color: '#3b82f6', textDecoration: 'none', background: 'rgba(59, 130, 246, 0.1)', padding: '0.4rem', borderRadius: '8px' }} title="前往物件網頁">
+                    <ExternalLink size={20} />
+                  </a>
+                )}
               </h2>
+              {selectedItem.result?.basicInfo?.["社區名稱"] && selectedItem.result.basicInfo["社區名稱"] !== '未提供' && selectedItem.result.basicInfo["社區名稱"] !== '-' && (
+                <div className={styles.communityName} style={{ justifyContent: 'center', fontSize: '1.1rem', marginTop: '0.5rem', marginBottom: '1rem' }}>
+                  <Building size={18} />
+                  {selectedItem.result.basicInfo["社區名稱"]}
+                </div>
+              )}
             </div>
 
             <div className={styles.modalBody}>
+              {/* Image Gallery Section */}
+              {selectedItem.result.imageUrls && selectedItem.result.imageUrls.length > 0 && (
+                <div className={styles.modalSection}>
+                  <h4><ImageIcon size={18} /> 房屋照片 ({selectedItem.result.imageUrls.length} 張)</h4>
+                  <div className={styles.imageGallery}>
+                    {selectedItem.result.imageUrls.map((url, idx) => (
+                      <div key={idx} className={styles.galleryImageContainer}>
+                        <img src={`/api/image?url=${encodeURIComponent(url)}`} alt={`房屋照片 ${idx + 1}`} className={styles.galleryImage} onError={(e) => { e.target.style.display = 'none'; }} />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {/* Map Section */}
               {((selectedItem.result.basicInfo && (selectedItem.result.basicInfo["詳細地址"] || selectedItem.result.basicInfo["名稱或地址"]) && selectedItem.result.basicInfo["名稱或地址"] !== "未提供") || (selectedItem.formData.address && !selectedItem.formData.address.startsWith('http'))) && (
                 <div className={styles.modalSection}>

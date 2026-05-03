@@ -92,16 +92,31 @@ async function fetchWebpageContent(url) {
     imageUrls = [...new Set(imageUrls)].slice(0, 50);
     console.log('Final Image URLs extracted:', imageUrls);
     
-    // Remove unwanted elements but KEEP scripts because SPAs store data in JSON within scripts
-    $('style, iframe, svg, footer, header, nav').remove();
+    // Extract title and meta description
+    const title = $('title').text();
+    const metaDescription = $('meta[name="description"]').attr('content') || $('meta[property="og:description"]').attr('content') || '';
+    
+    // Extract window.__INITIAL_STATE__ or __NUXT__ which contains the SPA data for 591
+    let stateData = '';
+    $('script').each((i, el) => {
+      const scriptContent = $(el).html();
+      if (scriptContent && (scriptContent.includes('__INITIAL_STATE__') || scriptContent.includes('__NUXT__'))) {
+        stateData += scriptContent + '\n';
+      }
+    });
+
+    // Remove unwanted elements
+    $('style, iframe, svg, footer, header, nav, script').remove();
     
     // Get text and clean it up
     let text = $('body').text();
     text = text.replace(/\s+/g, ' ').trim();
     
-    // Limit to 15000 characters to prevent prompt overflow, but allow enough to capture SPA JSON state
+    let combinedText = `網頁標題: ${title}\n網頁描述: ${metaDescription}\n\n網頁內文:\n${text}\n\n系統隱藏資料 (JSON/State):\n${stateData}`;
+    
+    // Limit to 30000 characters to prevent prompt overflow but ensure we get the SPA state
     return {
-      text: text.substring(0, 15000),
+      text: combinedText.substring(0, 30000),
       imageUrls: imageUrls
     };
   } catch (error) {
@@ -145,6 +160,7 @@ export async function POST(req) {
 {
   "basicInfo": {
     "名稱或地址": "...",
+    "社區名稱": "請盡可能提取出這間房屋所屬的建案或社區名稱，若無則填『未提供』",
     "詳細地址": "提取最精確的地點(如行政區+路名)，專供地圖搜尋，不要包含建案名稱或其他文字",
     "總價": "...",
     "單價": "...",
@@ -220,7 +236,8 @@ ${webpageContent}
     
     return Response.json({
       ...aiResult,
-      imageUrls: scrapedImageUrls
+      imageUrls: scrapedImageUrls,
+      sourceUrl: targetUrl
     });
   } catch (error) {
     console.error("Gemini API Error:", error);

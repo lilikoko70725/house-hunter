@@ -25,9 +25,7 @@ export default function Navbar() {
           <Link href="/compare" className={`${styles.navLink} ${pathname === '/compare' ? styles.active : ''}`}>
             <Scale size={16} /> <span className={styles.navText}>統計比較</span>
           </Link>
-          <Link href="/route" className={`${styles.navLink} ${pathname === '/route' ? styles.active : ''}`}>
-            <Compass size={16} /> <span className={styles.navText}>行程規劃</span>
-          </Link>
+
         </div>
       </nav>
     </div>

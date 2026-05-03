@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import styles from './page.module.css';
-import { Scale, Plus, X, Image as ImageIcon, Crown } from 'lucide-react';
+import { Scale, Plus, X, Image as ImageIcon, Crown, ExternalLink } from 'lucide-react';
 import Link from 'next/link';
 
 export default function ComparePage() {
@@ -61,6 +61,27 @@ export default function ComparePage() {
     const cleanStr = String(str).replace(/,/g, '');
     const match = cleanStr.match(/[\d.]+/);
     return match ? parseFloat(match[0]) : null;
+  };
+
+  // Helper to extract property URL safely
+  const getPropertyUrl = (item) => {
+    if (!item) return null;
+    if (item.result?.sourceUrl) return item.result.sourceUrl;
+    const urlRegex = /(https?:\/\/[^\s]+)/;
+    const match = (item.formData?.description || '').match(urlRegex) || (item.formData?.address || '').match(urlRegex);
+    return match ? match[0] : null;
+  };
+
+  // Helper to get a clean display name (prioritize user input, fallback to AI name, avoid raw URLs)
+  const getDisplayName = (item) => {
+    if (!item) return '房屋分析報告';
+    if (item.formData?.address && !item.formData.address.startsWith('http')) {
+      return item.formData.address;
+    }
+    if (item.result?.basicInfo?.["名稱或地址"] && item.result.basicInfo["名稱或地址"] !== '未提供') {
+      return item.result.basicInfo["名稱或地址"];
+    }
+    return '房屋分析報告';
   };
 
   // Helper to find the best indices for a given field
@@ -145,14 +166,25 @@ export default function ComparePage() {
                         </button>
                         <div className={styles.imageContainer}>
                           {item.result.imageUrls && item.result.imageUrls.length > 0 ? (
-                            <img src={`/api/image?url=${encodeURIComponent(item.result.imageUrls[0])}`} className={styles.propertyImage} alt="房屋照片" />
+                            <div className={styles.galleryScroll}>
+                              {item.result.imageUrls.map((url, idx) => (
+                                <img key={idx} src={`/api/image?url=${encodeURIComponent(url)}`} className={styles.propertyImage} alt={`房屋照片 ${idx + 1}`} />
+                              ))}
+                            </div>
                           ) : (
                             <div className={styles.noImage}><ImageIcon size={32} /></div>
                           )}
                           <div className={styles.scoreBadge}>{item.result.score} 分</div>
                         </div>
                         <div className={styles.address}>
-                          {item.formData.address || item.result.basicInfo?.["名稱或地址"]}
+                          {getPropertyUrl(item) ? (
+                            <a href={getPropertyUrl(item)} target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                              {getDisplayName(item)}
+                              <ExternalLink size={14} style={{ flexShrink: 0 }} />
+                            </a>
+                          ) : (
+                            getDisplayName(item)
+                          )}
                         </div>
                       </div>
                     ) : (
@@ -168,6 +200,14 @@ export default function ComparePage() {
             
             {compareItems.length > 0 && (
               <tbody>
+                <tr>
+                  <th className={styles.labelColumn}>社區名稱</th>
+                  {slots.map((item, index) => (
+                    <td key={`community-${index}`} className={styles.dataColumn}>
+                      {item ? (item.result.basicInfo?.["社區名稱"] || '-') : '-'}
+                    </td>
+                  ))}
+                </tr>
                 <tr>
                   <th className={styles.labelColumn}>總價</th>
                   {slots.map((item, index) => (
@@ -337,29 +377,60 @@ export default function ComparePage() {
                   <Link href="/analyze" style={{color: '#3b82f6', marginTop: '1rem', display: 'inline-block'}}>去分析一些房子吧</Link>
                 </div>
               ) : (
-                savedItems.map(item => (
-                  <div 
-                    key={item.id} 
-                    className={`${styles.savedItemCard} ${compareIds.includes(item.id) ? styles.selected : ''}`}
-                    onClick={() => handleSelect(item)}
-                  >
-                    {item.result.imageUrls && item.result.imageUrls.length > 0 ? (
-                      <img src={`/api/image?url=${encodeURIComponent(item.result.imageUrls[0])}`} className={styles.modalItemImage} alt="房屋照片" />
-                    ) : (
-                      <div className={styles.modalItemImage} style={{display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(255,255,255,0.05)'}}>
-                        <ImageIcon size={24} color="var(--text-muted)" />
+                <>
+                  {(() => {
+                    const toViewItems = savedItems.filter(i => (i.status || 'to_view') === 'to_view');
+                    const viewedItems = savedItems.filter(i => i.status === 'viewed');
+                    const archivedItems = savedItems.filter(i => i.status === 'archived');
+
+                    const renderItem = (item) => (
+                      <div 
+                        key={item.id} 
+                        className={`${styles.savedItemCard} ${compareIds.includes(item.id) ? styles.selected : ''}`}
+                        onClick={() => handleSelect(item)}
+                      >
+                        {item.result.imageUrls && item.result.imageUrls.length > 0 ? (
+                          <img src={`/api/image?url=${encodeURIComponent(item.result.imageUrls[0])}`} className={styles.modalItemImage} alt="房屋照片" />
+                        ) : (
+                          <div className={styles.modalItemImage} style={{display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(255,255,255,0.05)'}}>
+                            <ImageIcon size={24} color="var(--text-muted)" />
+                          </div>
+                        )}
+                        <div className={styles.modalItemInfo}>
+                          <div className={styles.modalItemAddress}>{getDisplayName(item)}</div>
+                          <div className={styles.modalItemTags}>
+                            <span>{item.formData.price ? `${item.formData.price} 萬` : ''}</span>
+                            <span>{item.formData.size ? `${item.formData.size} 坪` : ''}</span>
+                          </div>
+                        </div>
+                        <div className={styles.modalItemScore}>{item.result.score} 分</div>
                       </div>
-                    )}
-                    <div className={styles.modalItemInfo}>
-                      <div className={styles.modalItemAddress}>{item.formData.address || item.result.basicInfo?.["名稱或地址"]}</div>
-                      <div className={styles.modalItemTags}>
-                        <span>{item.formData.price ? `${item.formData.price} 萬` : ''}</span>
-                        <span>{item.formData.size ? `${item.formData.size} 坪` : ''}</span>
-                      </div>
-                    </div>
-                    <div className={styles.modalItemScore}>{item.result.score} 分</div>
-                  </div>
-                ))
+                    );
+
+                    return (
+                      <>
+                        {toViewItems.length > 0 && (
+                          <div className={styles.categorySection}>
+                            <h4 className={styles.categoryTitle}>待看房 ({toViewItems.length})</h4>
+                            {toViewItems.map(renderItem)}
+                          </div>
+                        )}
+                        {viewedItems.length > 0 && (
+                          <div className={styles.categorySection}>
+                            <h4 className={styles.categoryTitle}>已看房 ({viewedItems.length})</h4>
+                            {viewedItems.map(renderItem)}
+                          </div>
+                        )}
+                        {archivedItems.length > 0 && (
+                          <div className={styles.categorySection}>
+                            <h4 className={styles.categoryTitle}>已珍藏 ({archivedItems.length})</h4>
+                            {archivedItems.map(renderItem)}
+                          </div>
+                        )}
+                      </>
+                    );
+                  })()}
+                </>
               )}
             </div>
           </div>
