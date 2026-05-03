@@ -1,12 +1,27 @@
 "use client";
 
 import Link from 'next/link';
-import { Home, Sparkles, Map, Compass, Scale } from 'lucide-react';
-import { usePathname } from 'next/navigation';
+import { Home, Sparkles, Map, Compass, Scale, LogOut } from 'lucide-react';
+import { usePathname, useRouter } from 'next/navigation';
 import styles from './Navbar.module.css';
 
 export default function Navbar() {
   const pathname = usePathname();
+  const router = useRouter();
+
+  if (pathname === '/login') {
+    return null;
+  }
+
+  const handleLogout = async () => {
+    try {
+      await fetch('/api/auth/logout', { method: 'POST' });
+      router.push('/login');
+      router.refresh();
+    } catch (err) {
+      console.error('Logout failed', err);
+    }
+  };
 
   return (
     <div className={styles.navbarContainer}>
@@ -25,7 +40,9 @@ export default function Navbar() {
           <Link href="/compare" className={`${styles.navLink} ${pathname === '/compare' ? styles.active : ''}`}>
             <Scale size={16} /> <span className={styles.navText}>統計比較</span>
           </Link>
-
+          <button onClick={handleLogout} className={styles.logoutBtn} title="登出">
+            <LogOut size={16} /> <span className={styles.navText}>登出</span>
+          </button>
         </div>
       </nav>
     </div>
