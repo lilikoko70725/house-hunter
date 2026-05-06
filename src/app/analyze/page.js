@@ -7,6 +7,7 @@ import Link from 'next/link';
 
 export default function AnalyzePage() {
   const [formData, setFormData] = useState({
+    url: '',
     communityName: '',
     address: '',
     price: '',
@@ -32,8 +33,7 @@ export default function AnalyzePage() {
     if (quickSearch) {
       let initialData = { ...formData };
       if (quickSearch.startsWith('http')) {
-        initialData.description = quickSearch;
-        initialData.address = quickSearch;
+        initialData.url = quickSearch;
       } else {
         initialData.address = quickSearch;
       }
@@ -180,6 +180,11 @@ export default function AnalyzePage() {
             <p className={styles.subtitle}>輸入越詳細，AI 分析越準確</p>
             
             <form onSubmit={handleAnalyze} className={styles.form}>
+              <div className={styles.inputGroup}>
+                <label>房仲網頁網址</label>
+                <input type="text" name="url" value={formData.url} onChange={handleChange} placeholder="例: https://sale.591.com.tw/..." />
+              </div>
+              
               <div className={styles.row}>
                 <div className={styles.inputGroup}>
                   <label>社區名稱</label>

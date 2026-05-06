@@ -136,7 +136,8 @@ export async function POST(req) {
     // Check for URLs in address or description
     const urlInAddress = extractUrl(data.address || '');
     const urlInDescription = extractUrl(data.description || '');
-    const targetUrl = urlInAddress || urlInDescription;
+    const urlInUrlField = extractUrl(data.url || '');
+    const targetUrl = urlInUrlField || urlInAddress || urlInDescription;
     
     let webpageContent = '';
     let parsedNotice = '';
