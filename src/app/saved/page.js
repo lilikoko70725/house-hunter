@@ -78,7 +78,30 @@ export default function SavedPage() {
       .then(res => res.json())
       .then(data => {
         if (Array.isArray(data)) {
-          setSavedItems(data);
+          // Check if there is old local data that needs to be migrated to cloud
+          const localData = JSON.parse(localStorage.getItem('house_hunter_saved') || '[]');
+          if (localData.length > 0) {
+            // Optimistically show merged data
+            const existingIds = new Set(data.map(i => i.id));
+            const itemsToSync = localData.filter(i => !existingIds.has(i.id));
+            setSavedItems([...itemsToSync, ...data]);
+            
+            // Sync to cloud
+            fetch('/api/saved', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ action: 'sync', localItems: localData })
+            })
+            .then(res => res.json())
+            .then(syncData => {
+              if (syncData.items) setSavedItems(syncData.items);
+              // Clear local storage after successful sync so it doesn't run again
+              localStorage.removeItem('house_hunter_saved');
+            })
+            .catch(err => console.error("Error migrating local data:", err));
+          } else {
+            setSavedItems(data);
+          }
         }
       })
       .catch(err => console.error("Error fetching saved items:", err))

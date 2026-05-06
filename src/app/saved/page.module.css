@@ -515,6 +515,7 @@
   border: 1px solid rgba(255, 255, 255, 0.05);
   border-radius: 20px;
   padding: 1.5rem;
+  overflow-x: auto;
 }
 
 .modalSection h4 {
@@ -749,4 +750,13 @@
   .modalOverlay { padding: 1rem; }
   .modalHeader { flex-direction: column; align-items: flex-start; gap: 1rem; }
   .modalGrid { grid-template-columns: 1fr; }
+  .grid { grid-template-columns: 1fr; }
+  .modalBody { padding: 1.5rem; }
+  .modalHeader { padding: 1.5rem; }
+  .filterContainer {
+    scrollbar-width: none; /* Firefox */
+  }
+  .filterContainer::-webkit-scrollbar {
+    display: none; /* Chrome, Safari */
+  }
 }

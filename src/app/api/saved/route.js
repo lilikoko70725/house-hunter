@@ -23,7 +23,7 @@ export async function POST(req) {
       return Response.json({ error: "Vercel KV is not configured yet." }, { status: 500 });
     }
 
-    const { action, item, id, newStatus } = await req.json();
+    const { action, item, id, newStatus, localItems } = await req.json();
     let currentItems = await kv.get(KV_KEY) || [];
 
     if (action === 'add') {
@@ -37,6 +37,12 @@ export async function POST(req) {
       currentItems = currentItems.map(i => i.id === item.id ? { ...i, commuteInfo: item.commuteInfo } : i);
     } else if (action === 'delete') {
       currentItems = currentItems.filter(i => i.id !== id);
+    } else if (action === 'sync') {
+      if (Array.isArray(localItems)) {
+        const existingIds = new Set(currentItems.map(i => i.id));
+        const itemsToSync = localItems.filter(i => !existingIds.has(i.id));
+        currentItems = [...itemsToSync, ...currentItems];
+      }
     } else {
       return Response.json({ error: 'Invalid action' }, { status: 400 });
     }
