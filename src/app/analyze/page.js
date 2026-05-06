@@ -31,7 +31,16 @@ export default function AnalyzePage() {
   useEffect(() => {
     const quickSearch = localStorage.getItem('house_hunter_quick_search');
     if (quickSearch) {
-      let initialData = { ...formData };
+      let initialData = {
+        url: '',
+        communityName: '',
+        address: '',
+        price: '',
+        size: '',
+        age: '',
+        floor: '',
+        description: ''
+      };
       if (quickSearch.startsWith('http')) {
         initialData.url = quickSearch;
       } else {
@@ -42,8 +51,21 @@ export default function AnalyzePage() {
       
       // Automatically trigger analysis
       performAnalysis(initialData);
+    } else {
+      // If no quick search, try to load draft from session storage
+      const draft = sessionStorage.getItem('house_hunter_analyze_draft');
+      if (draft) {
+        try {
+          setFormData(JSON.parse(draft));
+        } catch (e) {}
+      }
     }
   }, []);
+
+  // Save draft whenever formData changes
+  useEffect(() => {
+    sessionStorage.setItem('house_hunter_analyze_draft', JSON.stringify(formData));
+  }, [formData]);
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
