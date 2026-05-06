@@ -15,14 +15,20 @@ export default function ComparePage() {
 
   useEffect(() => {
     setIsClient(true);
-    const items = JSON.parse(localStorage.getItem('house_hunter_saved') || '[]');
-    setSavedItems(items);
     
-    // Try to load previously compared IDs
-    const storedCompare = JSON.parse(localStorage.getItem('house_hunter_compare_ids') || '[]');
-    // Only keep IDs that still exist in savedItems
-    const validIds = storedCompare.filter(id => items.some(item => item.id === id));
-    setCompareIds(validIds.slice(0, MAX_COMPARE));
+    fetch('/api/saved')
+      .then(res => res.json())
+      .then(data => {
+        if (Array.isArray(data)) {
+          setSavedItems(data);
+          // Try to load previously compared IDs
+          const storedCompare = JSON.parse(localStorage.getItem('house_hunter_compare_ids') || '[]');
+          // Only keep IDs that still exist in savedItems
+          const validIds = storedCompare.filter(id => data.some(item => item.id === id));
+          setCompareIds(validIds.slice(0, MAX_COMPARE));
+        }
+      })
+      .catch(err => console.error("Error fetching saved items:", err));
   }, []);
 
   // Update localStorage when compareIds change
