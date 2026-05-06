@@ -6,7 +6,8 @@ export async function GET(req) {
   try {
     // If KV is not configured, return an empty array to prevent crashing
     if (!process.env.KV_REST_API_URL || !process.env.KV_REST_API_TOKEN) {
-      console.warn("Vercel KV is not configured. Returning empty list.");
+      const keys = Object.keys(process.env).filter(k => k.includes('KV') || k.includes('REDIS'));
+      console.warn(`Vercel KV is not configured. Found env keys: ${keys.join(', ')}`);
       return Response.json([]);
     }
     const items = await kv.get(KV_KEY) || [];
@@ -20,7 +21,8 @@ export async function GET(req) {
 export async function POST(req) {
   try {
     if (!process.env.KV_REST_API_URL || !process.env.KV_REST_API_TOKEN) {
-      return Response.json({ error: "Vercel KV is not configured yet." }, { status: 500 });
+      const keys = Object.keys(process.env).filter(k => k.includes('KV') || k.includes('REDIS'));
+      return Response.json({ error: `請確認已設定 Vercel KV。目前環境變數僅有: ${keys.length ? keys.join(', ') : '無'}` }, { status: 500 });
     }
 
     const { action, item, id, newStatus, localItems } = await req.json();

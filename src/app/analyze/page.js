@@ -154,7 +154,12 @@ export default function AnalyzePage() {
       });
       
       if (!res.ok) {
-        throw new Error('儲存失敗，請確認已設定 Vercel KV');
+        let errMsg = '儲存失敗，請確認已設定 Vercel KV';
+        try {
+          const errData = await res.json();
+          if (errData.error) errMsg = errData.error;
+        } catch(e) {}
+        throw new Error(errMsg);
       }
       
       setIsSaved(true);
