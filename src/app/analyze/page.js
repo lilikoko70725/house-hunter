@@ -71,6 +71,23 @@ export default function AnalyzePage() {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
+  const handleClear = () => {
+    if (window.confirm('確定要清空所有已填寫的內容嗎？')) {
+      const emptyData = {
+        url: '',
+        communityName: '',
+        address: '',
+        price: '',
+        size: '',
+        age: '',
+        floor: '',
+        description: ''
+      };
+      setFormData(emptyData);
+      sessionStorage.removeItem('house_hunter_analyze_draft');
+    }
+  };
+
   const performAnalysis = async (dataToSubmit) => {
     setLoading(true);
     setResult(null);
@@ -251,9 +268,14 @@ export default function AnalyzePage() {
                 ></textarea>
               </div>
 
-              <button type="submit" className={styles.submitBtn} disabled={loading}>
-                {loading ? <><Loader2 className={styles.spinner} /> 分析中...</> : '開始 AI 分析'}
-              </button>
+              <div className={styles.buttonGroup}>
+                <button type="button" className={styles.clearBtn} onClick={handleClear} disabled={loading}>
+                  清空資料
+                </button>
+                <button type="submit" className={styles.submitBtn} disabled={loading}>
+                  {loading ? <><Loader2 className={styles.spinner} /> 分析中...</> : '開始 AI 分析'}
+                </button>
+              </div>
             </form>
           </div>
 
