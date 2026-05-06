@@ -184,7 +184,8 @@ export async function POST(req) {
 (備註：如果某些基本資料無法從提供的資訊中取得，請直接填寫 "未提供"，請確保回傳純 JSON 格式)
 
 房屋資訊：
-地址：${data.address || '未提供'}
+社區名稱：${data.communityName || '未提供'}
+詳細地址：${data.address || '未提供'}
 總價：${data.price ? data.price + ' 萬' : '未提供'}
 坪數：${data.size ? data.size + ' 坪' : '未提供'}
 屋齡：${data.age ? data.age + ' 年' : '未提供'}

@@ -7,6 +7,7 @@ import Link from 'next/link';
 
 export default function AnalyzePage() {
   const [formData, setFormData] = useState({
+    communityName: '',
     address: '',
     price: '',
     size: '',
@@ -179,9 +180,15 @@ export default function AnalyzePage() {
             <p className={styles.subtitle}>輸入越詳細，AI 分析越準確</p>
             
             <form onSubmit={handleAnalyze} className={styles.form}>
-              <div className={styles.inputGroup}>
-                <label>地址 / 社區名稱</label>
-                <input type="text" name="address" value={formData.address} onChange={handleChange} placeholder="例: 台北市信義區信義路五段..." />
+              <div className={styles.row}>
+                <div className={styles.inputGroup}>
+                  <label>社區名稱</label>
+                  <input type="text" name="communityName" value={formData.communityName} onChange={handleChange} placeholder="例: 遠雄青青、冠德文心綻" />
+                </div>
+                <div className={styles.inputGroup}>
+                  <label>詳細地址</label>
+                  <input type="text" name="address" value={formData.address} onChange={handleChange} placeholder="例: 台北市信義區信義路五段..." />
+                </div>
               </div>
               
               <div className={styles.row}>
