@@ -1,16 +1,20 @@
-import { kv } from '@vercel/kv';
+import Redis from 'ioredis';
 
+let redis = null;
+if (process.env.REDIS_URL) {
+  redis = new Redis(process.env.REDIS_URL);
+}
 const KV_KEY = 'house_hunter_saved_items';
 
 export async function GET(req) {
   try {
-    // If KV is not configured, return an empty array to prevent crashing
-    if (!process.env.KV_REST_API_URL || !process.env.KV_REST_API_TOKEN) {
-      const keys = Object.keys(process.env).filter(k => k.includes('KV') || k.includes('REDIS'));
-      console.warn(`Vercel KV is not configured. Found env keys: ${keys.join(', ')}`);
+    // If Redis is not configured, return an empty array to prevent crashing
+    if (!redis) {
+      console.warn("Redis is not configured. Returning empty list.");
       return Response.json([]);
     }
-    const items = await kv.get(KV_KEY) || [];
+    const data = await redis.get(KV_KEY);
+    const items = data ? JSON.parse(data) : [];
     return Response.json(items);
   } catch (error) {
     console.error('KV GET Error:', error);
@@ -20,13 +24,13 @@ export async function GET(req) {
 
 export async function POST(req) {
   try {
-    if (!process.env.KV_REST_API_URL || !process.env.KV_REST_API_TOKEN) {
-      const keys = Object.keys(process.env).filter(k => k.includes('KV') || k.includes('REDIS'));
-      return Response.json({ error: `請確認已設定 Vercel KV。目前環境變數僅有: ${keys.length ? keys.join(', ') : '無'}` }, { status: 500 });
+    if (!redis) {
+      return Response.json({ error: '請確認已設定 Redis。' }, { status: 500 });
     }
 
     const { action, item, id, newStatus, localItems } = await req.json();
-    let currentItems = await kv.get(KV_KEY) || [];
+    const data = await redis.get(KV_KEY);
+    let currentItems = data ? JSON.parse(data) : [];
 
     if (action === 'add') {
       // Prevent duplicates if accidentally submitted twice
@@ -49,7 +53,7 @@ export async function POST(req) {
       return Response.json({ error: 'Invalid action' }, { status: 400 });
     }
 
-    await kv.set(KV_KEY, currentItems);
+    await redis.set(KV_KEY, JSON.stringify(currentItems));
     return Response.json({ success: true, items: currentItems });
   } catch (error) {
     console.error('KV POST Error:', error);
