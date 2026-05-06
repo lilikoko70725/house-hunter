@@ -92,11 +92,16 @@ export default function SavedPage() {
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ action: 'sync', localItems: localData })
             })
-            .then(res => res.json())
+            .then(res => {
+              if (!res.ok) throw new Error('API failed');
+              return res.json();
+            })
             .then(syncData => {
-              if (syncData.items) setSavedItems(syncData.items);
-              // Clear local storage after successful sync so it doesn't run again
-              localStorage.removeItem('house_hunter_saved');
+              if (syncData.items && syncData.success) {
+                setSavedItems(syncData.items);
+                // ONLY clear local storage after successful sync
+                localStorage.removeItem('house_hunter_saved');
+              }
             })
             .catch(err => console.error("Error migrating local data:", err));
           } else {
