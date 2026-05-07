@@ -137,6 +137,13 @@ export default function SavedPage() {
     return '房屋分析報告';
   };
 
+  const getCombinedImages = (item) => {
+    if (!item) return [];
+    const scraped = item.result?.imageUrls || [];
+    const uploaded = item.formData?.screenshots || [];
+    return [...uploaded, ...scraped];
+  };
+
   const handleDelete = async (e, id) => {
     e.stopPropagation(); // prevent opening the modal
     if (confirm('確定要刪除這筆分析紀錄嗎？')) {
@@ -386,53 +393,63 @@ export default function SavedPage() {
                   setTravelTime('');
                 }
               }}>
-                {item.result.imageUrls && item.result.imageUrls.length > 0 ? (
-                  <div className={styles.cardImageContainer}>
-                    <img src={`/api/image?url=${encodeURIComponent(item.result.imageUrls[0])}`} alt="房屋照片" className={styles.cardImage} onError={(e) => { e.target.style.display = 'none'; }} />
-                    <div className={styles.cardHeaderOverlay}>
-                      <select 
-                        className={styles.statusSelect} 
-                        value={item.status || 'to_view'} 
-                        onChange={(e) => handleStatusChange(e, item.id, e.target.value)}
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <option value="to_view">待看房</option>
-                        <option value="viewed">已看房</option>
-                        <option value="archived">已珍藏</option>
-                      </select>
-                      <div className={styles.scoreBadge}>
-                        {item.result.score} 分
+                {(() => {
+                  const images = getCombinedImages(item);
+                  if (images.length > 0) {
+                    const firstImg = images[0];
+                    const isBase64 = firstImg.startsWith('data:');
+                    const imgSrc = isBase64 ? firstImg : `/api/image?url=${encodeURIComponent(firstImg)}`;
+                    return (
+                      <div className={styles.cardImageContainer}>
+                        <img src={imgSrc} alt="房屋照片" className={styles.cardImage} onError={(e) => { !isBase64 && (e.target.style.display = 'none'); }} />
+                        <div className={styles.cardHeaderOverlay}>
+                          <select 
+                            className={styles.statusSelect} 
+                            value={item.status || 'to_view'} 
+                            onChange={(e) => handleStatusChange(e, item.id, e.target.value)}
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <option value="to_view">待看房</option>
+                            <option value="viewed">已看房</option>
+                            <option value="archived">已珍藏</option>
+                          </select>
+                          <div className={styles.scoreBadge}>
+                            {item.result.score} 分
+                          </div>
+                          <div style={{ display: 'flex', gap: '0.5rem' }}>
+                            <button onClick={(e) => toggleCompare(e, item.id)} className={`${styles.compareBtn} ${compareIds.includes(item.id) ? styles.active : ''}`} title={compareIds.includes(item.id) ? "移除比較" : "加入比較"}>
+                              <Scale size={18} />
+                            </button>
+                            <button onClick={(e) => handleDelete(e, item.id)} className={styles.deleteBtn} title="刪除紀錄">
+                              <Trash2 size={18} />
+                            </button>
+                          </div>
+                        </div>
                       </div>
-                      <div style={{ display: 'flex', gap: '0.5rem' }}>
-                        <button onClick={(e) => toggleCompare(e, item.id)} className={`${styles.compareBtn} ${compareIds.includes(item.id) ? styles.active : ''}`} title={compareIds.includes(item.id) ? "移除比較" : "加入比較"}>
-                          <Scale size={18} />
-                        </button>
+                    );
+                  } else {
+                    return (
+                      <div className={styles.cardHeader}>
+                        <select 
+                          className={styles.statusSelect} 
+                          value={item.status || 'to_view'} 
+                          onChange={(e) => handleStatusChange(e, item.id, e.target.value)}
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <option value="to_view">待看房</option>
+                          <option value="viewed">已看房</option>
+                          <option value="archived">已珍藏</option>
+                        </select>
+                        <div className={styles.scoreBadge}>
+                          {item.result.score} 分
+                        </div>
                         <button onClick={(e) => handleDelete(e, item.id)} className={styles.deleteBtn} title="刪除紀錄">
                           <Trash2 size={18} />
                         </button>
                       </div>
-                    </div>
-                  </div>
-                ) : (
-                  <div className={styles.cardHeader}>
-                    <select 
-                      className={styles.statusSelect} 
-                      value={item.status || 'to_view'} 
-                      onChange={(e) => handleStatusChange(e, item.id, e.target.value)}
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <option value="to_view">待看房</option>
-                      <option value="viewed">已看房</option>
-                      <option value="archived">已珍藏</option>
-                    </select>
-                    <div className={styles.scoreBadge}>
-                      {item.result.score} 分
-                    </div>
-                    <button onClick={(e) => handleDelete(e, item.id)} className={styles.deleteBtn} title="刪除紀錄">
-                      <Trash2 size={18} />
-                    </button>
-                  </div>
-                )}
+                    );
+                  }
+                })()}
 
                 <div className={styles.cardBody}>
                   <h3 className={styles.address}>
@@ -524,18 +541,28 @@ export default function SavedPage() {
 
             <div className={styles.modalBody}>
               {/* Image Gallery Section */}
-              {selectedItem.result.imageUrls && selectedItem.result.imageUrls.length > 0 && (
-                <div className={styles.modalSection}>
-                  <h4><ImageIcon size={18} /> 房屋照片 ({selectedItem.result.imageUrls.length} 張)</h4>
-                  <div className={styles.imageGallery}>
-                    {selectedItem.result.imageUrls.map((url, idx) => (
-                      <div key={idx} className={styles.galleryImageContainer}>
-                        <img src={`/api/image?url=${encodeURIComponent(url)}`} alt={`房屋照片 ${idx + 1}`} className={styles.galleryImage} onError={(e) => { e.target.style.display = 'none'; }} />
+              {(() => {
+                const modalImages = getCombinedImages(selectedItem);
+                if (modalImages.length > 0) {
+                  return (
+                    <div className={styles.modalSection}>
+                      <h4><ImageIcon size={18} /> 房屋照片 ({modalImages.length} 張)</h4>
+                      <div className={styles.imageGallery}>
+                        {modalImages.map((imgSrc, idx) => {
+                          const isBase64 = imgSrc.startsWith('data:');
+                          const finalSrc = isBase64 ? imgSrc : `/api/image?url=${encodeURIComponent(imgSrc)}`;
+                          return (
+                            <div key={idx} className={styles.galleryImageContainer}>
+                              <img src={finalSrc} alt={`房屋照片 ${idx + 1}`} className={styles.galleryImage} onError={(e) => { !isBase64 && (e.target.style.display = 'none'); }} />
+                            </div>
+                          );
+                        })}
                       </div>
-                    ))}
-                  </div>
-                </div>
-              )}
+                    </div>
+                  );
+                }
+                return null;
+              })()}
 
               {/* Map Section */}
               {((selectedItem.result.basicInfo && (selectedItem.result.basicInfo["詳細地址"] || selectedItem.result.basicInfo["名稱或地址"]) && selectedItem.result.basicInfo["名稱或地址"] !== "未提供") || (selectedItem.formData.address && !selectedItem.formData.address.startsWith('http'))) && (
