@@ -634,7 +634,7 @@ export default function SavedPage() {
                   <h4>房屋基本資料</h4>
                   <table className={styles.infoTable}>
                     <tbody>
-                      {Object.entries(selectedItem.result.basicInfo).map(([key, value]) => (
+                      {Object.entries({ ...selectedItem.result.basicInfo, "車位": selectedItem.result.basicInfo["車位"] || "未提供" }).map(([key, value]) => (
                         <tr key={key}>
                           <th>{key}</th>
                           <td>{value}</td>

@@ -553,7 +553,7 @@ export default function AnalyzePage() {
                     <h4 className={styles.cardTitle}>房屋基本資料</h4>
                     <table className={styles.infoTable}>
                       <tbody>
-                        {Object.entries(result.basicInfo).map(([key, value]) => (
+                        {Object.entries({ ...result.basicInfo, "車位": result.basicInfo["車位"] || "未提供" }).map(([key, value]) => (
                           <tr key={key}>
                             <th className={styles.tableHeader}>{key}</th>
                             <td className={styles.tableData}>{value}</td>
