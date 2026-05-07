@@ -198,8 +198,7 @@ ${webpageContent}
 
     const modelsToTry = [
       'gemini-2.5-flash',
-      'gemini-1.5-flash',
-      'gemini-1.5-pro'
+      'gemini-1.5-flash'
     ];
 
     let finalContents = [prompt];
@@ -220,7 +219,7 @@ ${webpageContent}
 
     let responseText = null;
     let aiResult = null;
-    let lastError = null;
+    let errorLog = [];
 
     for (const modelName of modelsToTry) {
       for (let attempt = 1; attempt <= 2; attempt++) {
@@ -239,7 +238,7 @@ ${webpageContent}
           aiResult = JSON.parse(responseText);
           break; // success, break out of attempt loop
         } catch (err) {
-          lastError = err;
+          errorLog.push(`${modelName}(try${attempt}): ${err.message}`);
           console.log(`Model ${modelName} attempt ${attempt} failed:`, err.message);
           // Wait a bit before retrying
           await new Promise(resolve => setTimeout(resolve, 1500));
@@ -249,7 +248,7 @@ ${webpageContent}
     }
 
     if (!aiResult) {
-      throw new Error(`所有模型均無法完成分析。最後錯誤: ${lastError?.message || '未知錯誤'}`);
+      throw new Error(`分析失敗，詳細錯誤日誌: ${errorLog.join(' | ')}`);
     }
     
     return Response.json({
