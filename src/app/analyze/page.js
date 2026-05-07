@@ -219,7 +219,8 @@ export default function AnalyzePage() {
     }
   };
 
-  const validImages = result?.imageUrls?.filter(url => !failedImages.includes(url)) || [];
+  const scrapedImages = result?.imageUrls?.filter(url => !failedImages.includes(url)) || [];
+  const validImages = [...screenshots, ...scrapedImages];
 
   const handlePrevImage = () => {
     if (validImages.length > 0) {
@@ -270,7 +271,7 @@ export default function AnalyzePage() {
       const newItem = {
         id: Date.now().toString(),
         timestamp: Date.now(),
-        formData,
+        formData: { ...formData, screenshots: screenshots.slice(0, 20) },
         result,
         commuteInfo: (mapDestination && travelTime && travelTime !== '無法估算' && travelTime !== '估算失敗' && travelTime !== '推估中...') ? {
           destination: mapDestination,
@@ -449,16 +450,20 @@ export default function AnalyzePage() {
                     )}
                     
                     <div className={styles.imageGallery}>
-                      {validImages.slice(currentImageIndex, currentImageIndex + 2).map((url, idx) => (
-                        <div key={currentImageIndex + idx} className={styles.imageContainer} onClick={() => setLightboxImage(url)}>
-                          <img 
-                            src={`/api/image?url=${encodeURIComponent(url)}`} 
-                            alt={`房屋照片 ${currentImageIndex + idx + 1}`} 
-                            className={styles.houseImage} 
-                            onError={() => handleImageError(url)}
-                          />
-                        </div>
-                      ))}
+                      {validImages.slice(currentImageIndex, currentImageIndex + 2).map((imgSrc, idx) => {
+                        const isBase64 = imgSrc.startsWith('data:');
+                        const finalSrc = isBase64 ? imgSrc : `/api/image?url=${encodeURIComponent(imgSrc)}`;
+                        return (
+                          <div key={currentImageIndex + idx} className={styles.imageContainer} onClick={() => setLightboxImage(imgSrc)}>
+                            <img 
+                              src={finalSrc} 
+                              alt={`房屋照片 ${currentImageIndex + idx + 1}`} 
+                              className={styles.houseImage} 
+                              onError={() => !isBase64 && handleImageError(imgSrc)}
+                            />
+                          </div>
+                        );
+                      })}
                     </div>
 
                     {validImages.length > 2 && (
@@ -613,7 +618,7 @@ export default function AnalyzePage() {
             <X size={32} />
           </button>
           <div className={styles.lightboxContent} onClick={e => e.stopPropagation()}>
-            <img src={`/api/image?url=${encodeURIComponent(lightboxImage)}`} alt="房屋全螢幕照片" className={styles.lightboxImg} />
+            <img src={lightboxImage.startsWith('data:') ? lightboxImage : `/api/image?url=${encodeURIComponent(lightboxImage)}`} alt="房屋全螢幕照片" className={styles.lightboxImg} />
           </div>
         </div>
       )}
