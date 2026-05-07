@@ -746,6 +746,107 @@
   to { opacity: 1; transform: translateY(0) scale(1); }
 }
 
+.editBtn {
+  background: rgba(59, 130, 246, 0.2);
+  color: #60a5fa;
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  transition: all 0.2s;
+}
+
+.editBtn:hover {
+  background: rgba(59, 130, 246, 0.4);
+}
+
+.saveBtn {
+  background: var(--accent-gradient);
+  color: white;
+  border: none;
+  padding: 0.5rem 1.5rem;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  transition: all 0.2s;
+}
+
+.saveBtn:hover {
+  box-shadow: var(--glow-shadow);
+}
+
+.cancelBtn {
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: all 0.2s;
+}
+
+.cancelBtn:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.editInput {
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  padding: 0.5rem;
+  border-radius: 6px;
+  color: white;
+  width: 100%;
+  font-family: inherit;
+  font-size: 1rem;
+}
+
+.editInput:focus {
+  outline: none;
+  border-color: var(--accent-primary);
+}
+
+.editTextarea {
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  padding: 0.8rem;
+  border-radius: 8px;
+  color: white;
+  width: 100%;
+  font-family: inherit;
+  font-size: 1rem;
+  min-height: 100px;
+  resize: vertical;
+}
+
+.editTextarea:focus {
+  outline: none;
+  border-color: var(--accent-primary);
+}
+
+.noteSection {
+  background: rgba(236, 72, 153, 0.05);
+  border-color: rgba(236, 72, 153, 0.2);
+}
+
+.noteSection h4 {
+  color: #f472b6;
+}
+
+.noteText {
+  white-space: pre-wrap;
+  color: var(--text-main);
+  line-height: 1.6;
+}
+
 @media (max-width: 768px) {
   .modalOverlay { padding: 1rem; }
   .modalHeader { flex-direction: column; align-items: flex-start; gap: 1rem; }

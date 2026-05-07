@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import styles from './page.module.css';
-import { Home, ArrowLeft, Trash2, MapPin, DollarSign, Maximize, Calendar, X, CheckCircle2, AlertTriangle, Lightbulb, TrendingUp, Navigation, ExternalLink, Car, Image as ImageIcon, Building, Scale, Loader2 } from 'lucide-react';
+import { Home, ArrowLeft, Trash2, MapPin, DollarSign, Maximize, Calendar, X, CheckCircle2, AlertTriangle, Lightbulb, TrendingUp, Navigation, ExternalLink, Car, Image as ImageIcon, Building, Scale, Loader2, Edit3, Save } from 'lucide-react';
 import Link from 'next/link';
 
 export default function SavedPage() {
@@ -22,12 +22,42 @@ export default function SavedPage() {
   const [sortBy, setSortBy] = useState('newest');
   const [compareIds, setCompareIds] = useState([]);
   const [isLoadingItems, setIsLoadingItems] = useState(true);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editData, setEditData] = useState(null);
 
   const closeModal = () => {
     setSelectedItem(null);
     setDestinationInput('');
     setMapDestination('');
     setTravelTime('');
+    setIsEditing(false);
+    setEditData(null);
+  };
+
+  const handleEditClick = () => {
+    setIsEditing(true);
+    const itemToEdit = JSON.parse(JSON.stringify(selectedItem));
+    if (itemToEdit.result && itemToEdit.result.basicInfo && !itemToEdit.result.basicInfo["車位"]) {
+      itemToEdit.result.basicInfo["車位"] = "未提供";
+    }
+    setEditData(itemToEdit);
+  };
+
+  const handleSaveEdit = async () => {
+    const newItems = savedItems.map(item => item.id === editData.id ? editData : item);
+    setSavedItems(newItems);
+    setSelectedItem(editData);
+    setIsEditing(false);
+
+    try {
+      await fetch('/api/saved', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'update_item', item: editData })
+      });
+    } catch (err) {
+      console.error("Failed to update item", err);
+    }
   };
 
   const handleRouteSubmit = async () => {
@@ -628,13 +658,66 @@ export default function SavedPage() {
                 </div>
               )}
 
+              {/* Note Section */}
+              {isEditing ? (
+                <div className={`${styles.modalSection} ${styles.noteSection}`}>
+                  <h4><Edit3 size={18} /> 備註筆記</h4>
+                  <textarea 
+                    className={styles.editTextarea} 
+                    value={editData.note || ''} 
+                    onChange={e => setEditData({...editData, note: e.target.value})}
+                    placeholder="在這裡寫下您對這間房子的筆記或心得..."
+                  />
+                </div>
+              ) : selectedItem.note ? (
+                <div className={`${styles.modalSection} ${styles.noteSection}`}>
+                  <h4><Edit3 size={18} /> 備註筆記</h4>
+                  <div className={styles.noteText}>{selectedItem.note}</div>
+                </div>
+              ) : null}
+
               {/* Basic Info */}
               {selectedItem.result.basicInfo && (
                 <div className={styles.modalSection}>
-                  <h4>房屋基本資料</h4>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                    <h4 style={{ marginBottom: 0 }}>房屋基本資料</h4>
+                    {!isEditing ? (
+                      <button className={styles.editBtn} onClick={handleEditClick}>
+                        <Edit3 size={16} /> 編輯資料
+                      </button>
+                    ) : (
+                      <div style={{ display: 'flex', gap: '0.5rem' }}>
+                        <button className={styles.cancelBtn} onClick={() => setIsEditing(false)}>取消</button>
+                        <button className={styles.saveBtn} onClick={handleSaveEdit}>
+                          <Save size={16} /> 儲存
+                        </button>
+                      </div>
+                    )}
+                  </div>
                   <table className={styles.infoTable}>
                     <tbody>
-                      {Object.entries({ ...selectedItem.result.basicInfo, "車位": selectedItem.result.basicInfo["車位"] || "未提供" }).map(([key, value]) => (
+                      {isEditing ? Object.entries(editData.result.basicInfo).map(([key, value]) => (
+                        <tr key={key}>
+                          <th>{key}</th>
+                          <td>
+                            <input 
+                              type="text" 
+                              className={styles.editInput} 
+                              value={value || ''} 
+                              onChange={e => setEditData({
+                                ...editData, 
+                                result: {
+                                  ...editData.result,
+                                  basicInfo: {
+                                    ...editData.result.basicInfo,
+                                    [key]: e.target.value
+                                  }
+                                }
+                              })} 
+                            />
+                          </td>
+                        </tr>
+                      )) : Object.entries({ ...selectedItem.result.basicInfo, "車位": selectedItem.result.basicInfo["車位"] || "未提供" }).map(([key, value]) => (
                         <tr key={key}>
                           <th>{key}</th>
                           <td>{value}</td>

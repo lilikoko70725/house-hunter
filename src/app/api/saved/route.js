@@ -41,6 +41,8 @@ export async function POST(req) {
       currentItems = currentItems.map(i => i.id === id ? { ...i, status: newStatus } : i);
     } else if (action === 'update_commute') {
       currentItems = currentItems.map(i => i.id === item.id ? { ...i, commuteInfo: item.commuteInfo } : i);
+    } else if (action === 'update_item') {
+      currentItems = currentItems.map(i => i.id === item.id ? { ...i, ...item } : i);
     } else if (action === 'delete') {
       currentItems = currentItems.filter(i => i.id !== id);
     } else if (action === 'sync') {
