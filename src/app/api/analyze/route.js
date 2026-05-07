@@ -156,7 +156,7 @@ export async function POST(req) {
     }
 
     const prompt = `
-你是一位專業的房地產分析師。請根據以下房屋資訊，進行客觀且深度的優缺點分析、整理基本資料，並且**根據該地址的區域行情，推估最新的實價登錄價格區間，進行開價比對**。
+你是一位專業的房地產分析師。請根據以下房屋資訊${data.screenshots?.length > 0 ? '（以及使用者提供的網頁截圖）' : ''}，進行客觀且深度的優缺點分析、整理基本資料，並且**根據該地址的區域行情，推估最新的實價登錄價格區間，進行開價比對**。
 請以 JSON 格式回傳，格式必須嚴格符合以下結構：
 {
   "basicInfo": {
@@ -183,6 +183,7 @@ export async function POST(req) {
   "score": 85
 }
 (備註：如果某些基本資料無法從提供的資訊中取得，請直接填寫 "未提供"，請確保回傳純 JSON 格式)
+${data.screenshots?.length > 0 ? '*(注意：請務必仔細閱讀使用者上傳的截圖，並將截圖中的價格、坪數、優缺點描述等資訊整合進您的分析與 JSON 輸出中)*' : ''}
 
 房屋資訊：
 社區名稱：${data.communityName || '未提供'}
@@ -201,6 +202,22 @@ ${webpageContent}
       'gemini-1.5-pro'
     ];
 
+    let finalContents = [prompt];
+    
+    if (data.screenshots && data.screenshots.length > 0) {
+      for (const base64Str of data.screenshots) {
+        const matches = base64Str.match(/^data:([a-zA-Z0-9]+\/[a-zA-Z0-9-.+]+);base64,(.+)$/);
+        if (matches && matches.length === 3) {
+          finalContents.push({
+            inlineData: {
+              data: matches[2],
+              mimeType: matches[1]
+            }
+          });
+        }
+      }
+    }
+
     let responseText = null;
     let aiResult = null;
     let lastError = null;
@@ -211,7 +228,7 @@ ${webpageContent}
           console.log(`Trying model ${modelName} (attempt ${attempt})...`);
           const response = await ai.models.generateContent({
             model: modelName,
-            contents: prompt,
+            contents: finalContents,
             config: {
               responseMimeType: "application/json"
             }

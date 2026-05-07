@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import styles from './page.module.css';
-import { Home, ArrowLeft, Loader2, CheckCircle2, AlertTriangle, Lightbulb, TrendingUp, ChevronLeft, ChevronRight, X, MapPin, Navigation, ExternalLink, Car } from 'lucide-react';
+import { Home, ArrowLeft, Loader2, CheckCircle2, AlertTriangle, Lightbulb, TrendingUp, ChevronLeft, ChevronRight, X, MapPin, Navigation, ExternalLink, Car, ImagePlus } from 'lucide-react';
 import Link from 'next/link';
 
 export default function AnalyzePage() {
@@ -16,6 +16,7 @@ export default function AnalyzePage() {
     floor: '',
     description: ''
   });
+  const [screenshots, setScreenshots] = useState([]);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
   const [errorMsg, setErrorMsg] = useState('');
@@ -71,6 +72,43 @@ export default function AnalyzePage() {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
+  const handlePaste = (e) => {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+
+    for (let i = 0; i < items.length; i++) {
+      if (items[i].type.indexOf('image') !== -1) {
+        const file = items[i].getAsFile();
+        handleImageFile(file);
+      }
+    }
+  };
+
+  const handleImageFile = (file) => {
+    if (!file) return;
+    
+    if (!file.type.startsWith('image/')) {
+      alert('請上傳圖片檔案');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      setScreenshots(prev => [...prev, e.target.result]);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleFileSelect = (e) => {
+    const files = Array.from(e.target.files);
+    files.forEach(handleImageFile);
+    e.target.value = '';
+  };
+
+  const removeScreenshot = (index) => {
+    setScreenshots(prev => prev.filter((_, i) => i !== index));
+  };
+
   const handleClear = () => {
     if (window.confirm('確定要清空所有已填寫的內容嗎？')) {
       const emptyData = {
@@ -84,6 +122,7 @@ export default function AnalyzePage() {
         description: ''
       };
       setFormData(emptyData);
+      setScreenshots([]);
       sessionStorage.removeItem('house_hunter_analyze_draft');
     }
   };
@@ -119,7 +158,7 @@ export default function AnalyzePage() {
 
   const handleAnalyze = async (e) => {
     e.preventDefault();
-    performAnalysis(formData);
+    performAnalysis({ ...formData, screenshots });
   };
 
   const handleImageError = (url) => {
@@ -219,6 +258,47 @@ export default function AnalyzePage() {
             <p className={styles.subtitle}>輸入越詳細，AI 分析越準確</p>
             
             <form onSubmit={handleAnalyze} className={styles.form}>
+              <div 
+                className={styles.uploadZone}
+                onPaste={handlePaste}
+                onDragOver={(e) => e.preventDefault()}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  if (e.dataTransfer.files) {
+                    Array.from(e.dataTransfer.files).forEach(handleImageFile);
+                  }
+                }}
+              >
+                <input 
+                  type="file" 
+                  id="screenshot-upload" 
+                  accept="image/*" 
+                  multiple 
+                  onChange={handleFileSelect} 
+                  className={styles.fileInput}
+                />
+                <label htmlFor="screenshot-upload" className={styles.uploadLabel}>
+                  <ImagePlus size={28} className={styles.uploadIcon} />
+                  <div className={styles.uploadText}>
+                    <strong>點擊上傳</strong> 或 <strong>直接貼上 (Ctrl+V)</strong> 網頁截圖
+                  </div>
+                  <div className={styles.uploadSubtext}>支援多張截圖，AI 將自動辨識圖片中的房屋資訊，突破防爬蟲限制！</div>
+                </label>
+                
+                {screenshots.length > 0 && (
+                  <div className={styles.previewContainer}>
+                    {screenshots.map((src, idx) => (
+                      <div key={idx} className={styles.previewBox}>
+                        <img src={src} alt="screenshot" className={styles.previewImg} />
+                        <button type="button" onClick={() => removeScreenshot(idx)} className={styles.removePreviewBtn}>
+                          <X size={14} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
               <div className={styles.inputGroup}>
                 <label>房仲網頁網址</label>
                 <input type="text" name="url" value={formData.url} onChange={handleChange} placeholder="例: https://sale.591.com.tw/..." />
