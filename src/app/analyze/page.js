@@ -90,8 +90,8 @@ export default function AnalyzePage() {
       reader.onload = (event) => {
         const img = new Image();
         img.onload = () => {
-          const MAX_WIDTH = 1600;
-          const MAX_HEIGHT = 1600;
+          const MAX_WIDTH = 1000;
+          const MAX_HEIGHT = 1000;
           let width = img.width;
           let height = img.height;
 
@@ -114,8 +114,8 @@ export default function AnalyzePage() {
           const ctx = canvas.getContext('2d');
           ctx.drawImage(img, 0, 0, width, height);
 
-          // Compress to JPEG with 0.7 quality to save massive space
-          const compressedBase64 = canvas.toDataURL('image/jpeg', 0.7);
+          // Compress to JPEG with 0.5 quality to ensure 30 images won't crash the server
+          const compressedBase64 = canvas.toDataURL('image/jpeg', 0.5);
           resolve(compressedBase64);
         };
         img.onerror = reject;
@@ -136,7 +136,12 @@ export default function AnalyzePage() {
 
     try {
       const compressedBase64 = await compressImage(file);
-      setScreenshots(prev => [...prev, compressedBase64]);
+      setScreenshots(prev => {
+        if (prev.length >= 30) {
+          return prev;
+        }
+        return [...prev, compressedBase64];
+      });
     } catch (e) {
       console.error("Image compression failed", e);
       alert('圖片處理失敗，請換一張試試看');
@@ -145,7 +150,10 @@ export default function AnalyzePage() {
 
   const handleFileSelect = (e) => {
     const files = Array.from(e.target.files);
-    files.forEach(handleImageFile);
+    if (files.length + screenshots.length > 30) {
+      alert('為了系統穩定，單次最多支援上傳 30 張截圖喔！');
+    }
+    files.slice(0, 30 - screenshots.length).forEach(handleImageFile);
     e.target.value = '';
   };
 
@@ -326,7 +334,7 @@ export default function AnalyzePage() {
                   <div className={styles.uploadText}>
                     <strong>點擊上傳</strong> 或 <strong>直接貼上 (Ctrl+V)</strong> 網頁截圖
                   </div>
-                  <div className={styles.uploadSubtext}>支援多張截圖，AI 將自動辨識圖片中的房屋資訊，突破防爬蟲限制！</div>
+                  <div className={styles.uploadSubtext}>支援一次上傳多張照片 (最高 30 張)，把客廳、房間、格局圖通通交給 AI 吧！</div>
                 </label>
                 
                 {screenshots.length > 0 && (
