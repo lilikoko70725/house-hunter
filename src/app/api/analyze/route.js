@@ -200,7 +200,9 @@ ${webpageContent}
 
     const modelsToTry = [
       'gemini-2.5-flash',
-      'gemini-1.5-flash'
+      'gemini-2.0-flash',
+      'gemini-2.5-pro',
+      'gemini-1.5-flash-8b'
     ];
 
     let finalContents = [prompt];
@@ -242,8 +244,8 @@ ${webpageContent}
         } catch (err) {
           errorLog.push(`${modelName}(try${attempt}): ${err.message}`);
           console.log(`Model ${modelName} attempt ${attempt} failed:`, err.message);
-          // Wait a bit before retrying
-          await new Promise(resolve => setTimeout(resolve, 1500));
+          // Wait a bit before retrying with exponential backoff
+          await new Promise(resolve => setTimeout(resolve, 2000 * attempt));
         }
       }
       if (aiResult) break; // success, break out of model loop
