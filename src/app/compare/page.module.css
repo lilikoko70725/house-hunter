@@ -436,13 +436,13 @@
   .removeBtn,
   .emptySlot,
   .headerIcon,
-  header,
-  footer,
-  nav {
+  :global(header),
+  :global(footer),
+  :global(nav) {
     display: none !important;
   }
 
-  body {
+  :global(body) {
     background: white !important;
     color: black !important;
   }
