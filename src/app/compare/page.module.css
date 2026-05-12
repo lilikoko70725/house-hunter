@@ -425,6 +425,56 @@
   color: var(--text-muted);
 }
 
+/* Export Mode Styles (applied temporarily for html2canvas) */
+.exportMode {
+  color: black !important;
+}
+
+.exportMode * {
+  color: black !important;
+}
+
+.exportMode .labelColumn {
+  background-color: #f3f4f6 !important;
+  color: #1f2937 !important;
+  border-right: 1px solid #ddd !important;
+}
+
+.exportMode .dataColumn {
+  border-right: 1px solid #ddd !important;
+  background-color: #ffffff !important;
+}
+
+.exportMode th, .exportMode td {
+  border-bottom: 1px solid #ddd !important;
+}
+
+.exportMode .bestCell {
+  background-color: #fefce8 !important;
+}
+
+.exportMode .price {
+  color: #b45309 !important;
+}
+
+.exportMode .crownIcon {
+  color: #eab308 !important;
+}
+
+.exportMode .address a {
+  color: #2563eb !important;
+  text-decoration: underline !important;
+}
+
+.exportMode .removeBtn,
+.exportMode .emptySlot {
+  display: none !important;
+}
+
+.exportMode .scoreBadge {
+  color: white !important;
+}
+
 @keyframes fadeIn {
   from { opacity: 0; }
   to { opacity: 1; }

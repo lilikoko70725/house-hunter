@@ -11,6 +11,7 @@ export default function ComparePage() {
   const [isClient, setIsClient] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
   
   const MAX_COMPARE = 3;
 
@@ -48,6 +49,67 @@ export default function ComparePage() {
 
   const handleRemove = (idToRemove) => {
     setCompareIds(prev => prev.filter(id => id !== idToRemove));
+  };
+
+  const exportPDF = async () => {
+    try {
+      setIsExporting(true);
+      
+      // Dynamically import client-only libraries
+      const html2canvas = (await import('html2canvas')).default;
+      const { jsPDF } = await import('jspdf');
+
+      const target = document.getElementById('comparison-table-container');
+      if (!target) return;
+
+      // Temporarily modify styles for full capture and PDF-friendly colors
+      const originalOverflow = target.style.overflow;
+      const originalBackground = target.style.background;
+      target.style.overflow = 'visible';
+      target.style.background = '#ffffff';
+      target.classList.add(styles.exportMode); // Add a class for specific light-theme overrides
+
+      // Wait a tick for styles to apply
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      const canvas = await html2canvas(target, {
+        scale: 2, // High quality
+        useCORS: true, // Allow images from other domains if any
+        backgroundColor: '#ffffff',
+        windowWidth: target.scrollWidth,
+        width: target.scrollWidth
+      });
+
+      // Restore original styles
+      target.style.overflow = originalOverflow;
+      target.style.background = originalBackground;
+      target.classList.remove(styles.exportMode);
+
+      const imgData = canvas.toDataURL('image/png');
+      
+      // Calculate PDF dimensions (A4 size: 210 x 297 mm)
+      const pdf = new jsPDF({
+        orientation: canvas.width > canvas.height ? 'l' : 'p',
+        unit: 'mm',
+        format: 'a4'
+      });
+      
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+      
+      // If the height exceeds one page, we just add the image (it might scale down or span pages depending on how we handle it, 
+      // but for simplicity, we scale to fit width. If it's too long, jspdf can split it, or we just let it be a long single page)
+      // Actually, standard practice for charts is to fit to width. If it's super long, it will be scaled down.
+      // Let's just scale to fit width, and let height be whatever.
+      pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+      pdf.save('House_Hunter_Comparison.pdf');
+
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      alert('產生 PDF 時發生錯誤，請稍後再試。');
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   const handleSelect = (item) => {
@@ -174,14 +236,21 @@ export default function ComparePage() {
             <p className={styles.subtitle}>並排檢視物件條件，挑出最理想的家</p>
           </div>
           {compareItems.length > 0 && (
-            <button className={styles.downloadBtn} onClick={() => window.print()} title="儲存為 PDF 或列印">
+            <button 
+              className={`${styles.downloadBtn} ${isExporting ? styles.exporting : ''}`} 
+              onClick={exportPDF} 
+              title="儲存為 PDF 或列印"
+              disabled={isExporting}
+            >
               <Download size={18} />
-              <span className={styles.downloadText}>儲存 PDF</span>
+              <span className={styles.downloadText}>
+                {isExporting ? '處理中...' : '儲存 PDF'}
+              </span>
             </button>
           )}
         </div>
 
-        <div className={styles.comparisonSection}>
+        <div id="comparison-table-container" className={styles.comparisonSection}>
           <table className={styles.compareTable} style={{ '--col-count': MAX_COMPARE }}>
             <thead>
               <tr>
