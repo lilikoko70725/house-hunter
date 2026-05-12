@@ -90,6 +90,13 @@ export default function ComparePage() {
     return '房屋分析報告';
   };
 
+  const getCombinedImages = (item) => {
+    if (!item) return [];
+    const scraped = item.result?.imageUrls || [];
+    const uploaded = item.formData?.screenshots || [];
+    return [...uploaded, ...scraped];
+  };
+
   // Helper to find the best indices for a given field
   const getBestIndices = (fieldType) => {
     const values = slots.map(item => {
@@ -97,19 +104,19 @@ export default function ComparePage() {
       let val;
       switch (fieldType) {
         case 'price':
-          val = extractNumber(item.formData.price || item.result.basicInfo?.["總價"]);
+          val = extractNumber(item.formData?.price || item.result?.basicInfo?.["總價"]);
           break;
         case 'unitPrice':
-          val = extractNumber(item.result.basicInfo?.["單價"]);
+          val = extractNumber(item.result?.basicInfo?.["單價"]);
           break;
         case 'size':
-          val = extractNumber(item.formData.size || item.result.basicInfo?.["總坪數"]);
+          val = extractNumber(item.formData?.size || item.result?.basicInfo?.["總坪數"]);
           break;
         case 'age':
-          val = extractNumber(item.formData.age || item.result.basicInfo?.["屋齡"]);
+          val = extractNumber(item.formData?.age || item.result?.basicInfo?.["屋齡"]);
           break;
         case 'publicRatio':
-          val = extractNumber(item.result.basicInfo?.["公設比"]);
+          val = extractNumber(item.result?.basicInfo?.["公設比"]);
           break;
         case 'commuteTime':
           if (item.commuteInfo?.time && item.commuteInfo.time !== '無法估算' && item.commuteInfo.time !== '估算失敗') {
@@ -171,16 +178,22 @@ export default function ComparePage() {
                           <X size={16} />
                         </button>
                         <div className={styles.imageContainer}>
-                          {item.result.imageUrls && item.result.imageUrls.length > 0 ? (
-                            <div className={styles.galleryScroll}>
-                              {item.result.imageUrls.map((url, idx) => (
-                                <img key={idx} src={`/api/image?url=${encodeURIComponent(url)}`} className={styles.propertyImage} alt={`房屋照片 ${idx + 1}`} />
-                              ))}
-                            </div>
-                          ) : (
-                            <div className={styles.noImage}><ImageIcon size={32} /></div>
-                          )}
-                          <div className={styles.scoreBadge}>{item.result.score} 分</div>
+                          {(() => {
+                            const images = getCombinedImages(item);
+                            if (images.length > 0) {
+                              return (
+                                <div className={styles.galleryScroll}>
+                                  {images.map((imgSrc, idx) => {
+                                    const isBase64 = imgSrc.startsWith('data:');
+                                    const finalSrc = isBase64 ? imgSrc : `/api/image?url=${encodeURIComponent(imgSrc)}`;
+                                    return <img key={idx} src={finalSrc} className={styles.propertyImage} alt={`房屋照片 ${idx + 1}`} onError={(e) => { !isBase64 && (e.target.style.display = 'none'); }} />;
+                                  })}
+                                </div>
+                              );
+                            }
+                            return <div className={styles.noImage}><ImageIcon size={32} /></div>;
+                          })()}
+                          <div className={styles.scoreBadge}>{item.result?.score || 0} 分</div>
                         </div>
                         <div className={styles.address}>
                           {getPropertyUrl(item) ? (
@@ -210,7 +223,7 @@ export default function ComparePage() {
                   <th className={styles.labelColumn}>社區名稱</th>
                   {slots.map((item, index) => (
                     <td key={`community-${index}`} className={styles.dataColumn}>
-                      {item ? (item.result.basicInfo?.["社區名稱"] || '-') : '-'}
+                      {item ? (item.result?.basicInfo?.["社區名稱"] || '-') : '-'}
                     </td>
                   ))}
                 </tr>
@@ -220,7 +233,7 @@ export default function ComparePage() {
                     <td key={`price-${index}`} className={`${styles.dataColumn} ${bestPrice.includes(index) ? styles.bestCell : ''}`}>
                       {item ? (
                         <div className={styles.cellContent}>
-                          <span className={styles.price}>{item.formData.price ? `${item.formData.price} 萬` : (item.result.basicInfo?.["總價"] || '-')}</span>
+                          <span className={styles.price}>{item.formData?.price ? `${item.formData.price} 萬` : (item.result?.basicInfo?.["總價"] || '-')}</span>
                           {bestPrice.includes(index) && <Crown className={styles.crownIcon} size={18} />}
                         </div>
                       ) : '-'}
@@ -233,7 +246,7 @@ export default function ComparePage() {
                     <td key={`unit-price-${index}`} className={`${styles.dataColumn} ${bestUnitPrice.includes(index) ? styles.bestCell : ''}`}>
                       {item ? (
                         <div className={styles.cellContent}>
-                          <span>{item.result.basicInfo?.["單價"] || '-'}</span>
+                          <span>{item.result?.basicInfo?.["單價"] || '-'}</span>
                           {bestUnitPrice.includes(index) && <Crown className={styles.crownIcon} size={18} />}
                         </div>
                       ) : '-'}
@@ -247,8 +260,8 @@ export default function ComparePage() {
                       {item ? (
                         <div className={styles.cellContent}>
                           <div>
-                            <div>{item.formData.size ? `${item.formData.size} 坪` : (item.result.basicInfo?.["總坪數"] || '-')}</div>
-                            <div style={{color: 'var(--text-muted)', fontSize: '0.9rem', marginTop: '4px'}}>{item.result.basicInfo?.["格局"] || '-'}</div>
+                            <div>{item.formData?.size ? `${item.formData.size} 坪` : (item.result?.basicInfo?.["總坪數"] || '-')}</div>
+                            <div style={{color: 'var(--text-muted)', fontSize: '0.9rem', marginTop: '4px'}}>{item.result?.basicInfo?.["格局"] || '-'}</div>
                           </div>
                           {bestSize.includes(index) && <Crown className={styles.crownIcon} size={18} />}
                         </div>
@@ -263,8 +276,8 @@ export default function ComparePage() {
                       {item ? (
                         <div className={styles.cellContent}>
                           <div>
-                            <div>{item.formData.age ? `${item.formData.age} 年` : (item.result.basicInfo?.["屋齡"] || '-')}</div>
-                            <div style={{color: 'var(--text-muted)', fontSize: '0.9rem', marginTop: '4px'}}>{item.formData.floor || item.result.basicInfo?.["樓層"] || '-'}</div>
+                            <div>{item.formData?.age ? `${item.formData.age} 年` : (item.result?.basicInfo?.["屋齡"] || '-')}</div>
+                            <div style={{color: 'var(--text-muted)', fontSize: '0.9rem', marginTop: '4px'}}>{item.formData?.floor || item.result?.basicInfo?.["樓層"] || '-'}</div>
                           </div>
                           {bestAge.includes(index) && <Crown className={styles.crownIcon} size={18} />}
                         </div>
@@ -276,7 +289,7 @@ export default function ComparePage() {
                   <th className={styles.labelColumn}>行政區</th>
                   {slots.map((item, index) => {
                     if (!item) return <td key={`district-${index}`} className={styles.dataColumn}>-</td>;
-                    const address = item.result.basicInfo?.["詳細地址"] || item.formData.address || item.result.basicInfo?.["名稱或地址"] || '';
+                    const address = item.result?.basicInfo?.["詳細地址"] || item.formData?.address || item.result?.basicInfo?.["名稱或地址"] || '';
                     const match = address.match(/(.{2,3}[市縣])?(.{2,3}[區市鎮鄉])/);
                     return <td key={`district-${index}`} className={styles.dataColumn}>{match ? match[0] : '-'}</td>;
                   })}
@@ -285,7 +298,7 @@ export default function ComparePage() {
                   <th className={styles.labelColumn}>型態 / 用途</th>
                   {slots.map((item, index) => (
                     <td key={`type-${index}`} className={styles.dataColumn}>
-                      {item ? (item.result.basicInfo?.["型態/用途"] || '-') : '-'}
+                      {item ? (item.result?.basicInfo?.["型態/用途"] || '-') : '-'}
                     </td>
                   ))}
                 </tr>
@@ -295,7 +308,7 @@ export default function ComparePage() {
                     <td key={`public-ratio-${index}`} className={`${styles.dataColumn} ${bestPublicRatio.includes(index) ? styles.bestCell : ''}`}>
                       {item ? (
                         <div className={styles.cellContent}>
-                          <span>{item.result.basicInfo?.["公設比"] || '-'}</span>
+                          <span>{item.result?.basicInfo?.["公設比"] || '-'}</span>
                           {bestPublicRatio.includes(index) && <Crown className={styles.crownIcon} size={18} />}
                         </div>
                       ) : '-'}
@@ -306,7 +319,7 @@ export default function ComparePage() {
                   <th className={styles.labelColumn}>最近捷運站</th>
                   {slots.map((item, index) => (
                     <td key={`mrt-${index}`} className={styles.dataColumn}>
-                      {item ? (item.result.basicInfo?.["最近捷運站"] || '-') : '-'}
+                      {item ? (item.result?.basicInfo?.["最近捷運站"] || '-') : '-'}
                     </td>
                   ))}
                 </tr>
@@ -332,7 +345,7 @@ export default function ComparePage() {
                   <th className={styles.labelColumn}>AI 購屋建議</th>
                   {slots.map((item, index) => (
                     <td key={`summary-${index}`} className={styles.dataColumn}>
-                      {item ? item.result.summary : '-'}
+                      {item ? (item.result?.summary || '-') : '-'}
                     </td>
                   ))}
                 </tr>
@@ -342,7 +355,7 @@ export default function ComparePage() {
                     <td key={`pros-${index}`} className={styles.dataColumn}>
                       {item ? (
                         <ul className={styles.list}>
-                          {item.result.pros?.map((pro, idx) => <li key={idx} className={styles.prosItem}>{pro}</li>)}
+                          {item.result?.pros?.map((pro, idx) => <li key={idx} className={styles.prosItem}>{pro}</li>)}
                         </ul>
                       ) : '-'}
                     </td>
@@ -354,7 +367,7 @@ export default function ComparePage() {
                     <td key={`cons-${index}`} className={styles.dataColumn}>
                       {item ? (
                         <ul className={styles.list}>
-                          {item.result.cons?.map((con, idx) => <li key={idx} className={styles.consItem}>{con}</li>)}
+                          {item.result?.cons?.map((con, idx) => <li key={idx} className={styles.consItem}>{con}</li>)}
                         </ul>
                       ) : '-'}
                     </td>
@@ -386,32 +399,36 @@ export default function ComparePage() {
                 <>
                   {(() => {
                     const toViewItems = savedItems.filter(i => (i.status || 'to_view') === 'to_view');
+                    const scheduledItems = savedItems.filter(i => i.status === 'scheduled');
                     const viewedItems = savedItems.filter(i => i.status === 'viewed');
                     const archivedItems = savedItems.filter(i => i.status === 'archived');
 
-                    const renderItem = (item) => (
-                      <div 
-                        key={item.id} 
-                        className={`${styles.savedItemCard} ${compareIds.includes(item.id) ? styles.selected : ''}`}
-                        onClick={() => handleSelect(item)}
-                      >
-                        {item.result.imageUrls && item.result.imageUrls.length > 0 ? (
-                          <img src={`/api/image?url=${encodeURIComponent(item.result.imageUrls[0])}`} className={styles.modalItemImage} alt="房屋照片" />
-                        ) : (
-                          <div className={styles.modalItemImage} style={{display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(255,255,255,0.05)'}}>
-                            <ImageIcon size={24} color="var(--text-muted)" />
+                    const renderItem = (item) => {
+                      const images = getCombinedImages(item);
+                      return (
+                        <div 
+                          key={item.id} 
+                          className={`${styles.savedItemCard} ${compareIds.includes(item.id) ? styles.selected : ''}`}
+                          onClick={() => handleSelect(item)}
+                        >
+                          {images.length > 0 ? (
+                            <img src={images[0].startsWith('data:') ? images[0] : `/api/image?url=${encodeURIComponent(images[0])}`} className={styles.modalItemImage} alt="房屋照片" onError={(e) => { !images[0].startsWith('data:') && (e.target.style.display = 'none'); }} />
+                          ) : (
+                            <div className={styles.modalItemImage} style={{display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(255,255,255,0.05)'}}>
+                              <ImageIcon size={24} color="var(--text-muted)" />
+                            </div>
+                          )}
+                          <div className={styles.modalItemInfo}>
+                            <div className={styles.modalItemAddress}>{getDisplayName(item)}</div>
+                            <div className={styles.modalItemTags}>
+                              <span>{item.formData?.price ? `${item.formData.price} 萬` : ''}</span>
+                              <span>{item.formData?.size ? `${item.formData.size} 坪` : ''}</span>
+                            </div>
                           </div>
-                        )}
-                        <div className={styles.modalItemInfo}>
-                          <div className={styles.modalItemAddress}>{getDisplayName(item)}</div>
-                          <div className={styles.modalItemTags}>
-                            <span>{item.formData.price ? `${item.formData.price} 萬` : ''}</span>
-                            <span>{item.formData.size ? `${item.formData.size} 坪` : ''}</span>
-                          </div>
+                          <div className={styles.modalItemScore}>{item.result?.score || 0} 分</div>
                         </div>
-                        <div className={styles.modalItemScore}>{item.result.score} 分</div>
-                      </div>
-                    );
+                      );
+                    };
 
                     return (
                       <>
@@ -419,6 +436,12 @@ export default function ComparePage() {
                           <div className={styles.categorySection}>
                             <h4 className={styles.categoryTitle}>待看房 ({toViewItems.length})</h4>
                             {toViewItems.map(renderItem)}
+                          </div>
+                        )}
+                        {scheduledItems.length > 0 && (
+                          <div className={styles.categorySection}>
+                            <h4 className={styles.categoryTitle}>已安排 ({scheduledItems.length})</h4>
+                            {scheduledItems.map(renderItem)}
                           </div>
                         )}
                         {viewedItems.length > 0 && (
