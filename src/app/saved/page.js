@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import styles from './page.module.css';
-import { Home, ArrowLeft, Trash2, MapPin, DollarSign, Maximize, Calendar, X, CheckCircle2, AlertTriangle, Lightbulb, TrendingUp, Navigation, ExternalLink, Car, Image as ImageIcon, Building, Scale, Loader2, Edit3, Save } from 'lucide-react';
+import { Home, ArrowLeft, Trash2, MapPin, DollarSign, Maximize, Calendar, X, CheckCircle2, AlertTriangle, Lightbulb, TrendingUp, Navigation, ExternalLink, Car, Image as ImageIcon, Building, Scale, Loader2, Edit3, Save, RefreshCw } from 'lucide-react';
 import Link from 'next/link';
 
 export default function SavedPage() {
@@ -24,6 +24,7 @@ export default function SavedPage() {
   const [isLoadingItems, setIsLoadingItems] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
   const [editData, setEditData] = useState(null);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
 
   const closeModal = () => {
     setSelectedItem(null);
@@ -57,6 +58,68 @@ export default function SavedPage() {
       });
     } catch (err) {
       console.error("Failed to update item", err);
+    }
+  };
+
+  const handleReanalyze = async () => {
+    if (!selectedItem) return;
+    setIsAnalyzing(true);
+    
+    const analyzeData = {
+      ...selectedItem.formData,
+      communityName: selectedItem.result.basicInfo?.["社區名稱"] && selectedItem.result.basicInfo["社區名稱"] !== '未提供' ? selectedItem.result.basicInfo["社區名稱"] : selectedItem.formData.communityName,
+      address: selectedItem.result.basicInfo?.["詳細地址"] && selectedItem.result.basicInfo["詳細地址"] !== '未提供' ? selectedItem.result.basicInfo["詳細地址"] : (selectedItem.result.basicInfo?.["名稱或地址"] || selectedItem.formData.address),
+      price: selectedItem.result.basicInfo?.["總價"]?.replace(/[^\d.]/g, '') || selectedItem.formData.price,
+      size: selectedItem.result.basicInfo?.["總坪數"]?.replace(/[^\d.]/g, '') || selectedItem.formData.size,
+      age: selectedItem.result.basicInfo?.["屋齡"]?.replace(/[^\d.]/g, '') || selectedItem.formData.age,
+      floor: selectedItem.result.basicInfo?.["樓層"] || selectedItem.formData.floor,
+      description: (selectedItem.formData.description || '') + 
+        (selectedItem.result.basicInfo?.["車位"] && selectedItem.result.basicInfo["車位"] !== '未提供' ? `\n\n[使用者補充車位資訊]: ${selectedItem.result.basicInfo["車位"]}` : '') +
+        (selectedItem.note ? `\n\n[使用者補充看屋筆記]: ${selectedItem.note}` : ''),
+      url: getPropertyUrl(selectedItem) || selectedItem.formData.url,
+      screenshots: selectedItem.formData.screenshots || []
+    };
+
+    try {
+      const res = await fetch('/api/analyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(analyzeData)
+      });
+      
+      const newResult = await res.json();
+      
+      if (res.ok) {
+        const updatedItem = {
+          ...selectedItem,
+          result: {
+            ...newResult,
+            basicInfo: {
+              ...selectedItem.result.basicInfo, // preserve user edits
+              ...newResult.basicInfo
+            }
+          }
+        };
+        
+        const newItems = savedItems.map(item => item.id === updatedItem.id ? updatedItem : item);
+        setSavedItems(newItems);
+        setSelectedItem(updatedItem);
+        
+        await fetch('/api/saved', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'update_item', item: updatedItem })
+        });
+        
+        alert("重新分析完成！");
+      } else {
+        alert("重新分析失敗：" + (newResult.error || "未知錯誤"));
+      }
+    } catch (err) {
+      console.error("Failed to re-analyze", err);
+      alert("重新分析發生錯誤，請稍後再試。");
+    } finally {
+      setIsAnalyzing(false);
     }
   };
 
@@ -552,20 +615,33 @@ export default function SavedPage() {
               <div className={styles.modalScoreBadge}>
                 <span className={styles.scoreNum}>{selectedItem.result.score}</span> 分
               </div>
-              <h2 className={styles.modalTitle}>
-                <MapPin size={24} className={styles.icon} />
-                {getDisplayName(selectedItem)}
-                {getPropertyUrl(selectedItem) && (
-                  <a href={getPropertyUrl(selectedItem)} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', marginLeft: '0.5rem', color: '#3b82f6', textDecoration: 'none', background: 'rgba(59, 130, 246, 0.1)', padding: '0.4rem', borderRadius: '8px' }} title="前往物件網頁">
-                    <ExternalLink size={20} />
-                  </a>
+              <div style={{ flex: 1 }}>
+                <h2 className={styles.modalTitle}>
+                  <MapPin size={24} className={styles.icon} />
+                  {getDisplayName(selectedItem)}
+                  {getPropertyUrl(selectedItem) && (
+                    <a href={getPropertyUrl(selectedItem)} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', marginLeft: '0.5rem', color: '#3b82f6', textDecoration: 'none', background: 'rgba(59, 130, 246, 0.1)', padding: '0.4rem', borderRadius: '8px' }} title="前往物件網頁">
+                      <ExternalLink size={20} />
+                    </a>
+                  )}
+                </h2>
+                {selectedItem.result?.basicInfo?.["社區名稱"] && selectedItem.result.basicInfo["社區名稱"] !== '未提供' && selectedItem.result.basicInfo["社區名稱"] !== '-' && (
+                  <div className={styles.communityName} style={{ justifyContent: 'flex-start', fontSize: '1.1rem', marginTop: '0.5rem' }}>
+                    <Building size={18} />
+                    {selectedItem.result.basicInfo["社區名稱"]}
+                  </div>
                 )}
-              </h2>
-              {selectedItem.result?.basicInfo?.["社區名稱"] && selectedItem.result.basicInfo["社區名稱"] !== '未提供' && selectedItem.result.basicInfo["社區名稱"] !== '-' && (
-                <div className={styles.communityName} style={{ justifyContent: 'center', fontSize: '1.1rem', marginTop: '0.5rem', marginBottom: '1rem' }}>
-                  <Building size={18} />
-                  {selectedItem.result.basicInfo["社區名稱"]}
-                </div>
+              </div>
+              
+              {!isEditing && (
+                <button 
+                  className={styles.reanalyzeBtn} 
+                  onClick={handleReanalyze}
+                  disabled={isAnalyzing}
+                >
+                  {isAnalyzing ? <Loader2 size={18} className={styles.spinner} /> : <RefreshCw size={18} />}
+                  <span className={styles.reanalyzeText}>{isAnalyzing ? '分析中...' : '重新分析'}</span>
+                </button>
               )}
             </div>
 
