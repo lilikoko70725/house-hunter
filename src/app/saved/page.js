@@ -889,6 +889,23 @@ export default function SavedPage() {
           </div>
         </div>
       )}
+
+      {/* Compare Floating Bar */}
+      {compareIds.length > 0 && (
+        <div className={styles.compareFloatingBar}>
+          <div className={styles.compareInfo}>
+            已選取 <strong>{compareIds.length}</strong> 個物件
+          </div>
+          <div className={styles.compareActions}>
+            <button className={styles.clearCompareBtn} onClick={() => { setCompareIds([]); localStorage.removeItem('house_hunter_compare_ids'); }}>
+              清空
+            </button>
+            <Link href="/compare" className={styles.goCompareBtn}>
+              開始比較
+            </Link>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
