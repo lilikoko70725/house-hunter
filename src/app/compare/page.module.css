@@ -445,6 +445,14 @@
   :global(body) {
     background: white !important;
     color: black !important;
+    font-family: "PingFang TC", "Heiti TC", "Microsoft JhengHei", sans-serif !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Force all text in the table to be black by default */
+  .compareTable * {
+    color: black !important;
   }
 
   .container {
@@ -480,13 +488,15 @@
   }
 
   .labelColumn {
-    background: #f9fafb !important;
-    color: #374151 !important;
+    background-color: #f3f4f6 !important; /* light gray background */
+    color: #1f2937 !important; /* dark gray text */
     border-right: 1px solid #ddd !important;
+    font-weight: bold !important;
   }
 
   .dataColumn {
     border-right: 1px solid #ddd !important;
+    background-color: #ffffff !important;
   }
 
   .address a {
@@ -496,10 +506,15 @@
 
   .price {
     color: #b45309 !important;
+    font-weight: bold !important;
   }
 
   .bestCell {
-    background: #fefce8 !important;
+    background-color: #fefce8 !important;
+  }
+
+  .crownIcon {
+    color: #eab308 !important;
   }
 
   .scoreBadge {
