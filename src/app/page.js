@@ -1,7 +1,7 @@
 "use client";
 
 import styles from './page.module.css';
-import { Home, Map, Sparkles, ArrowRight, Compass, Search } from 'lucide-react';
+import { Home, Map, Sparkles, ArrowRight, BarChart2, Search } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useState } from 'react';
@@ -45,7 +45,7 @@ export default function HomePage() {
           </h1>
           <p className={`${styles.subtitle} animate-fade-in delay-2`}>
             輸入房屋資訊，讓 AI 瞬間為您分析優缺點。
-            安排看房行程，自動規劃最佳交通路線，讓看房變得輕鬆高效。
+            收錄並管理口袋名單，多維度統計比較各項房屋條件，讓買房決策更精準。
           </p>
 
           <div className={`${styles.actionContainer} animate-fade-in delay-2`}>
@@ -82,12 +82,12 @@ export default function HomePage() {
             <p>收藏您心儀的物件，一目了然比較各項條件與 AI 綜合評分。</p>
           </Link>
 
-          <Link href="/route" className={`${styles.featureCard} glass-panel`}>
+          <Link href="/compare" className={`${styles.featureCard} glass-panel`}>
             <div className={`${styles.cardIconWrapper} ${styles.routeIconWrapper}`}>
-              <Compass className={styles.cardIcon} />
+              <BarChart2 className={styles.cardIcon} />
             </div>
-            <h3>看房路線規劃</h3>
-            <p>自動排列最佳看房順序，估算交通時間，讓您的一日看房行程不手忙腳亂。</p>
+            <h3>統計比較分析</h3>
+            <p>並排檢視物件條件，視覺化呈現價格、坪數與 AI 評分，找出最理想的家。</p>
           </Link>
         </div>
       </main>
