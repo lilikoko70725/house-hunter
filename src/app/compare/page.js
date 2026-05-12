@@ -87,21 +87,14 @@ export default function ComparePage() {
 
       const imgData = canvas.toDataURL('image/png');
       
-      // Calculate PDF dimensions (A4 size: 210 x 297 mm)
+      // Use custom dimensions to perfectly fit the entire table on one single continuous page
       const pdf = new jsPDF({
         orientation: canvas.width > canvas.height ? 'l' : 'p',
-        unit: 'mm',
-        format: 'a4'
+        unit: 'px',
+        format: [canvas.width, canvas.height]
       });
       
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
-      
-      // If the height exceeds one page, we just add the image (it might scale down or span pages depending on how we handle it, 
-      // but for simplicity, we scale to fit width. If it's too long, jspdf can split it, or we just let it be a long single page)
-      // Actually, standard practice for charts is to fit to width. If it's super long, it will be scaled down.
-      // Let's just scale to fit width, and let height be whatever.
-      pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+      pdf.addImage(imgData, 'PNG', 0, 0, canvas.width, canvas.height);
       pdf.save('House_Hunter_Comparison.pdf');
 
     } catch (error) {
