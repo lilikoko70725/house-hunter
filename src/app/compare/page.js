@@ -10,33 +10,41 @@ export default function ComparePage() {
   const [compareIds, setCompareIds] = useState([]); // Array of IDs, max 3
   const [isClient, setIsClient] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isLoaded, setIsLoaded] = useState(false);
   
   const MAX_COMPARE = 3;
 
   useEffect(() => {
     setIsClient(true);
     
+    // Read synchronously first to prevent overwrite
+    const storedCompare = JSON.parse(localStorage.getItem('house_hunter_compare_ids') || '[]');
+    setCompareIds(storedCompare);
+    
     fetch('/api/saved')
       .then(res => res.json())
       .then(data => {
         if (Array.isArray(data)) {
           setSavedItems(data);
-          // Try to load previously compared IDs
-          const storedCompare = JSON.parse(localStorage.getItem('house_hunter_compare_ids') || '[]');
           // Only keep IDs that still exist in savedItems
-          const validIds = storedCompare.filter(id => data.some(item => item.id === id));
-          setCompareIds(validIds.slice(0, MAX_COMPARE));
+          setCompareIds(prev => {
+            const validIds = prev.filter(id => data.some(item => item.id === id));
+            return validIds.slice(0, MAX_COMPARE);
+          });
         }
       })
-      .catch(err => console.error("Error fetching saved items:", err));
+      .catch(err => console.error("Error fetching saved items:", err))
+      .finally(() => {
+        setIsLoaded(true);
+      });
   }, []);
 
   // Update localStorage when compareIds change
   useEffect(() => {
-    if (isClient) {
+    if (isLoaded) {
       localStorage.setItem('house_hunter_compare_ids', JSON.stringify(compareIds));
     }
-  }, [compareIds, isClient]);
+  }, [compareIds, isLoaded]);
 
   const handleRemove = (idToRemove) => {
     setCompareIds(prev => prev.filter(id => id !== idToRemove));
