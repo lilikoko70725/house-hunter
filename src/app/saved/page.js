@@ -427,6 +427,12 @@ export default function SavedPage() {
                 待看房
               </button>
               <button 
+                className={`${styles.filterTab} ${statusFilter === 'scheduled' ? styles.active : ''}`}
+                onClick={() => setStatusFilter('scheduled')}
+              >
+                已安排
+              </button>
+              <button 
                 className={`${styles.filterTab} ${statusFilter === 'viewed' ? styles.active : ''}`}
                 onClick={() => setStatusFilter('viewed')}
               >
@@ -534,6 +540,7 @@ export default function SavedPage() {
                             onClick={(e) => e.stopPropagation()}
                           >
                             <option value="to_view">待看房</option>
+                            <option value="scheduled">已安排</option>
                             <option value="viewed">已看房</option>
                             <option value="archived">已珍藏</option>
                           </select>
@@ -561,6 +568,7 @@ export default function SavedPage() {
                           onClick={(e) => e.stopPropagation()}
                         >
                           <option value="to_view">待看房</option>
+                          <option value="scheduled">已安排</option>
                           <option value="viewed">已看房</option>
                           <option value="archived">已珍藏</option>
                         </select>
