@@ -332,6 +332,30 @@ export default function ComparePage() {
                   ))}
                 </tr>
                 <tr>
+                  <th className={styles.labelColumn}>實價登錄預估</th>
+                  {slots.map((item, index) => (
+                    <td key={`est-price-${index}`} className={styles.dataColumn}>
+                      {item ? (
+                        <div style={{ color: 'var(--accent-primary)', fontWeight: 500 }}>
+                          {item.result?.priceAnalysis?.estimatedMarketPrice || '-'}
+                        </div>
+                      ) : '-'}
+                    </td>
+                  ))}
+                </tr>
+                <tr>
+                  <th className={styles.labelColumn}>開價分析</th>
+                  {slots.map((item, index) => (
+                    <td key={`price-analysis-${index}`} className={styles.dataColumn}>
+                      {item ? (
+                        <div style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>
+                          {item.result?.priceAnalysis?.comparison || '-'}
+                        </div>
+                      ) : '-'}
+                    </td>
+                  ))}
+                </tr>
+                <tr>
                   <th className={styles.labelColumn}>坪數 / 格局</th>
                   {slots.map((item, index) => (
                     <td key={`size-${index}`} className={`${styles.dataColumn} ${bestSize.includes(index) ? styles.bestCell : ''}`}>
@@ -377,6 +401,14 @@ export default function ComparePage() {
                   {slots.map((item, index) => (
                     <td key={`type-${index}`} className={styles.dataColumn}>
                       {item ? (item.result?.basicInfo?.["型態/用途"] || '-') : '-'}
+                    </td>
+                  ))}
+                </tr>
+                <tr>
+                  <th className={styles.labelColumn}>車位</th>
+                  {slots.map((item, index) => (
+                    <td key={`parking-${index}`} className={styles.dataColumn}>
+                      {item ? (item.result?.basicInfo?.["車位"] || '-') : '-'}
                     </td>
                   ))}
                 </tr>
