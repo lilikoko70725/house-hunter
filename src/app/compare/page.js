@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import styles from './page.module.css';
-import { Scale, Plus, X, Image as ImageIcon, Crown, ExternalLink } from 'lucide-react';
+import { Scale, Plus, X, Image as ImageIcon, Crown, ExternalLink, Download } from 'lucide-react';
 import Link from 'next/link';
 
 export default function ComparePage() {
@@ -169,8 +169,16 @@ export default function ComparePage() {
           <div className={styles.headerIcon}>
             <Scale size={32} />
           </div>
-          <h2>統計比較</h2>
-          <p className={styles.subtitle}>並排檢視物件條件，挑出最理想的家</p>
+          <div style={{ flex: 1 }}>
+            <h2>統計比較</h2>
+            <p className={styles.subtitle}>並排檢視物件條件，挑出最理想的家</p>
+          </div>
+          {compareItems.length > 0 && (
+            <button className={styles.downloadBtn} onClick={() => window.print()} title="儲存為 PDF 或列印">
+              <Download size={18} />
+              <span className={styles.downloadText}>儲存 PDF</span>
+            </button>
+          )}
         </div>
 
         <div className={styles.comparisonSection}>
@@ -377,6 +385,16 @@ export default function ComparePage() {
                         <ul className={styles.list}>
                           {item.result?.cons?.map((con, idx) => <li key={idx} className={styles.consItem}>{con}</li>)}
                         </ul>
+                      ) : '-'}
+                    </td>
+                  ))}
+                </tr>
+                <tr>
+                  <th className={styles.labelColumn}>備註筆記</th>
+                  {slots.map((item, index) => (
+                    <td key={`note-${index}`} className={styles.dataColumn}>
+                      {item ? (
+                        <div className={styles.noteText}>{item.note || '-'}</div>
                       ) : '-'}
                     </td>
                   ))}

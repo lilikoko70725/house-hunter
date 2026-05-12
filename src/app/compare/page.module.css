@@ -17,8 +17,9 @@
 
 .header {
   display: flex;
-  flex-direction: column;
   align-items: center;
+  justify-content: space-between;
+  width: 100%;
   gap: 0.5rem;
   margin-bottom: 1rem;
   text-align: center;
@@ -34,6 +35,31 @@
 
 .subtitle {
   color: var(--text-muted);
+}
+
+.downloadBtn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 0.95rem;
+}
+
+.downloadBtn:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.noteText {
+  white-space: pre-wrap;
+  color: var(--text-main);
+  line-height: 1.6;
+  font-size: 0.95rem;
 }
 
 .comparisonSection {
@@ -402,4 +428,100 @@
 @keyframes fadeIn {
   from { opacity: 0; }
   to { opacity: 1; }
+}
+
+@media print {
+  /* Hide elements that shouldn't be printed */
+  .downloadBtn,
+  .removeBtn,
+  .emptySlot,
+  .headerIcon,
+  header,
+  footer,
+  nav {
+    display: none !important;
+  }
+
+  body {
+    background: white !important;
+    color: black !important;
+  }
+
+  .container {
+    padding: 0;
+    margin: 0;
+  }
+
+  .mainContent {
+    width: 100%;
+    margin-top: 0;
+  }
+
+  .comparisonSection {
+    background: transparent !important;
+    box-shadow: none !important;
+    padding: 0;
+  }
+
+  .compareTable {
+    width: 100%;
+    page-break-inside: auto;
+  }
+
+  .compareTable tr {
+    page-break-inside: avoid;
+    page-break-after: auto;
+  }
+
+  .compareTable th,
+  .compareTable td {
+    border-bottom: 1px solid #ddd !important;
+    color: black !important;
+  }
+
+  .labelColumn {
+    background: #f9fafb !important;
+    color: #374151 !important;
+    border-right: 1px solid #ddd !important;
+  }
+
+  .dataColumn {
+    border-right: 1px solid #ddd !important;
+  }
+
+  .address a {
+    color: #2563eb !important;
+    text-decoration: underline !important;
+  }
+
+  .price {
+    color: #b45309 !important;
+  }
+
+  .bestCell {
+    background: #fefce8 !important;
+  }
+
+  .scoreBadge {
+    position: static;
+    display: inline-block;
+    background: #3b82f6 !important;
+    color: white !important;
+    margin-top: 0.5rem;
+    box-shadow: none !important;
+  }
+
+  .imageContainer {
+    height: auto;
+    background: transparent !important;
+  }
+  
+  .galleryScroll {
+    overflow: visible;
+  }
+
+  .propertyImage {
+    max-height: 150px;
+    object-fit: contain;
+  }
 }
