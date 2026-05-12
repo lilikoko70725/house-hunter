@@ -123,6 +123,37 @@ export default function SavedPage() {
     }
   };
 
+  const handleDeleteImage = async (imgSrcToDelete) => {
+    // Create new selectedItem
+    const updatedItem = { ...selectedItem };
+    
+    // Check and remove from formData.screenshots
+    if (updatedItem.formData?.screenshots) {
+      updatedItem.formData.screenshots = updatedItem.formData.screenshots.filter(img => img !== imgSrcToDelete);
+    }
+    
+    // Check and remove from result.imageUrls
+    if (updatedItem.result?.imageUrls) {
+      updatedItem.result.imageUrls = updatedItem.result.imageUrls.filter(img => img !== imgSrcToDelete);
+    }
+    
+    // Update state
+    setSelectedItem(updatedItem);
+    const newItems = savedItems.map(item => item.id === updatedItem.id ? updatedItem : item);
+    setSavedItems(newItems);
+    
+    // Save to backend
+    try {
+      await fetch('/api/saved', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'update_item', item: updatedItem })
+      });
+    } catch (err) {
+      console.error("Failed to delete image", err);
+    }
+  };
+
   const handleRouteSubmit = async () => {
     if (!destinationInput.trim() || !selectedItem) return;
     setMapDestination(destinationInput);
@@ -660,6 +691,16 @@ export default function SavedPage() {
                           return (
                             <div key={idx} className={styles.galleryImageContainer}>
                               <img src={finalSrc} alt={`房屋照片 ${idx + 1}`} className={styles.galleryImage} onError={(e) => { !isBase64 && (e.target.style.display = 'none'); }} />
+                              <button 
+                                className={styles.deleteImageBtn} 
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDeleteImage(imgSrc);
+                                }}
+                                title="刪除照片"
+                              >
+                                <Trash2 size={16} />
+                              </button>
                             </div>
                           );
                         })}
