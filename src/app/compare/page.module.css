@@ -442,17 +442,10 @@
     display: none !important;
   }
 
-  :global(body) {
-    background: white !important;
-    color: black !important;
-    font-family: "PingFang TC", "Heiti TC", "Microsoft JhengHei", sans-serif !important;
-    -webkit-print-color-adjust: exact !important;
-    print-color-adjust: exact !important;
-  }
-
-  /* Force all text in the table to be black by default */
-  .compareTable * {
-    color: black !important;
+  /* Font and base text color are handled in globals.css */
+  .compareTable {
+    width: 100%;
+    page-break-inside: auto;
   }
 
   .container {
