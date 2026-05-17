@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import styles from './page.module.css';
-import { Home, ArrowLeft, Trash2, MapPin, DollarSign, Maximize, Calendar, X, CheckCircle2, AlertTriangle, Lightbulb, TrendingUp, Navigation, ExternalLink, Car, Image as ImageIcon, Building, Scale, Loader2, Edit3, Save, RefreshCw } from 'lucide-react';
+import { Home, ArrowLeft, Trash2, MapPin, DollarSign, Maximize, Calendar, X, CheckCircle2, AlertTriangle, Lightbulb, TrendingUp, Navigation, ExternalLink, Car, Image as ImageIcon, Building, Scale, Loader2, Edit3, Save, RefreshCw, Plus } from 'lucide-react';
 import Link from 'next/link';
 
 export default function SavedPage() {
@@ -151,6 +151,49 @@ export default function SavedPage() {
       });
     } catch (err) {
       console.error("Failed to delete image", err);
+    }
+  };
+
+  const handleAddImage = async (e) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    const newImages = [];
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      if (file.size > 5 * 1024 * 1024) continue; // skip > 5MB
+      const reader = new FileReader();
+      const base64 = await new Promise((resolve) => {
+        reader.onloadend = () => resolve(reader.result);
+        reader.readAsDataURL(file);
+      });
+      newImages.push(base64);
+    }
+
+    if (newImages.length === 0) {
+      alert('圖片超過 5MB 限制或格式不支援。');
+      return;
+    }
+
+    const updatedItem = { ...selectedItem };
+    if (!updatedItem.formData.screenshots) {
+      updatedItem.formData.screenshots = [];
+    }
+    updatedItem.formData.screenshots = [...updatedItem.formData.screenshots, ...newImages];
+    
+    setSelectedItem(updatedItem);
+    const newItems = savedItems.map(item => item.id === updatedItem.id ? updatedItem : item);
+    setSavedItems(newItems);
+    
+    // Save to backend
+    try {
+      await fetch('/api/saved', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'update_item', item: updatedItem })
+      });
+    } catch (err) {
+      console.error("Failed to add image", err);
     }
   };
 
@@ -687,13 +730,19 @@ export default function SavedPage() {
             <div className={styles.modalBody}>
               {/* Image Gallery Section */}
               {(() => {
-                const modalImages = getCombinedImages(selectedItem);
-                if (modalImages.length > 0) {
-                  return (
-                    <div className={styles.modalSection}>
-                      <h4><ImageIcon size={18} /> 房屋照片 ({modalImages.length} 張)</h4>
+                const images = getCombinedImages(selectedItem);
+                return (
+                  <div className={styles.modalSection}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                      <h4 style={{ marginBottom: 0 }}><ImageIcon size={18} /> 房屋照片</h4>
+                      <label className={styles.addImageBtn}>
+                        <input type="file" accept="image/*" multiple hidden onChange={handleAddImage} />
+                        <Plus size={16} /> 新增照片
+                      </label>
+                    </div>
+                    {images.length > 0 ? (
                       <div className={styles.imageGallery}>
-                        {modalImages.map((imgSrc, idx) => {
+                        {images.map((imgSrc, idx) => {
                           const isBase64 = imgSrc.startsWith('data:');
                           const finalSrc = isBase64 ? imgSrc : `/api/image?url=${encodeURIComponent(imgSrc)}`;
                           return (
@@ -713,10 +762,11 @@ export default function SavedPage() {
                           );
                         })}
                       </div>
-                    </div>
-                  );
-                }
-                return null;
+                    ) : (
+                      <div className={styles.emptyGallery}>目前沒有房屋照片</div>
+                    )}
+                  </div>
+                );
               })()}
 
               {/* Map Section */}
